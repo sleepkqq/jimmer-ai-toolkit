@@ -66,6 +66,21 @@ public interface Model extends Auditable {
 
 ---
 
+## Nullability
+
+Entity properties are **non-null by default**. For nullable fields, add `@Nullable` from `org.jetbrains.annotations`:
+
+```java
+import org.jetbrains.annotations.Nullable;
+
+@Nullable String description();    // nullable — DB column allows NULL
+String title();                    // non-null by default, no annotation needed
+```
+
+Do NOT add `@NotNull` — it's the default. Only add `@Nullable` where needed.
+
+---
+
 ## Associations
 
 `@JoinColumn` goes directly under the association annotation.
