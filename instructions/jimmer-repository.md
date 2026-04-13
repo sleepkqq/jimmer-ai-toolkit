@@ -38,14 +38,11 @@ repository.saveCommand(input)                                      // returns Vi
 repository.deleteById(id);
 ```
 
-**Only add custom default methods for queries that built-ins don't cover:**
+**Generate ONLY methods the user actually asked for.** Don't add findBy* for every field — add them when business logic requires. Repository should be minimal:
 
 ```java
 public interface ArticleRepository extends JRepository<Article, UUID> {
-    // Abstract method — Jimmer generates SQL from name
-    List<Article> findByStatus(ArticleStatus status);
-
-    // Custom query — sql() provided by JRepository
+    // Custom query — ONLY when built-ins don't cover the need
     default <V extends View<Article>> Page<V> search(
         @Nullable String titleQuery, @Nullable UUID categoryId,
         int page, int size, Class<V> viewType
