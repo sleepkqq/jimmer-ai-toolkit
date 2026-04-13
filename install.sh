@@ -177,17 +177,12 @@ if [ "$INSTALL_MCP" = true ]; then
     log_header "MCP Server"
 
     MCP_DIR="$TOOLKIT_DIR/mcp/jimmer-docs-mcp"
-    MCP_DIST="$MCP_DIR/dist/index.js"
+    MCP_DIST="$MCP_DIR/dist/bundle.js"
 
     if [ ! -f "$MCP_DIST" ]; then
-        log_info "Building MCP server (first time)..."
-        if (cd "$MCP_DIR" && npm install --silent 2>/dev/null && npx tsc 2>/dev/null); then
-            log_install "built successfully"
-        else
-            log_error "Build failed. Run manually:"
-            echo -e "    ${DIM}cd $MCP_DIR && npm install && npx tsc${NC}"
-            INSTALL_MCP=false
-        fi
+        log_error "MCP bundle not found at $MCP_DIST"
+        log_error "Run: cd $MCP_DIR && npm install && npm run bundle"
+        INSTALL_MCP=false
     fi
 
     if [ "$INSTALL_MCP" = true ]; then
