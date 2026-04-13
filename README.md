@@ -32,10 +32,13 @@ Interactive workflows with full reference material built-in:
 
 ```bash
 chmod +x install.sh                                     # grant execute permission (once)
-./install.sh /path/to/project                           # Claude Code (default)
+./install.sh /path/to/project                           # Java + Spring Boot (default)
+./install.sh --kotlin /path/to/project                  # add Kotlin reference
+./install.sh --quarkus /path/to/project                 # add Quarkus reference
+./install.sh --kotlin --quarkus /path/to/project        # both
+./install.sh --mcp /path/to/project                     # with MCP server
 ./install.sh --tool qwen /path/to/project               # Qwen Code
 ./install.sh --tool gigacode /path/to/project            # GigaCode
-./install.sh --mcp /path/to/project                     # with MCP server
 ```
 
 ### MCP Setup
@@ -55,6 +58,8 @@ export GITHUB_TOKEN=ghp_your_token_here
 ./install.sh [OPTIONS] /path/to/project
 
   --tool claude|qwen|gigacode       Target CLI tool (default: claude)
+  --kotlin                          Add Kotlin reference to context
+  --quarkus                         Add Quarkus reference to context
   --symlink                         Use symlinks instead of copies
   --mcp                             Install MCP server
 ```

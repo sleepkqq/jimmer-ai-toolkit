@@ -79,10 +79,10 @@ Diagnose Jimmer errors using the error catalog below.
 
 **Fix:** Add `@OnDissociate(DissociateAction.DELETE)` on the association:
 
-```kotlin
+```java
 @OneToMany(mappedBy = "parent")
 @OnDissociate(DissociateAction.DELETE)
-val children: List<Child>
+List<Child> children();
 ```
 
 Also ensure the corresponding FK constraint in the database has `ON DELETE CASCADE` for consistency.
@@ -229,9 +229,9 @@ After a constraint violation, Jimmer queries to determine which specific constra
 2. Re-load the entity with a complete Fetcher before accessing the property
 3. Use `ImmutableObjects.isLoaded(entity, prop)` to check before accessing
 
-```kotlin
+```java
 if (ImmutableObjects.isLoaded(article, ArticleProps.CONTENT)) {
-    val content = article.content
+    String content = article.content();
 }
 ```
 

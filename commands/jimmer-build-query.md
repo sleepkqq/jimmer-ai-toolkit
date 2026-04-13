@@ -4,261 +4,149 @@ description: "Build a complex Jimmer query with typed DSL — createQuery, subQu
 
 # Query Builder
 
-Build typed Jimmer queries using the patterns below.
-
 ## Key Rules
 
-- Java tables: use `ARTICLE_TABLE` from generated `Tables` — never `ArticleTable.$`
-- Java collection joins (`@OneToMany`/`@ManyToMany`): use `ARTICLE_TABLE_EX` — `Table` only has FK navigation
-- Kotlin: `table` in query DSL supports all associations, no TableEx needed
-- `like()` adds `%` automatically (LikeMode.ANYWHERE) — never add `%` manually
-- Use generic `viewType` parameter — never hardcode View classes
-- Dynamic predicates: Kotlin `eq?`/`like?`, Java `eqIf()`/`likeIf()`
+- **Method order:** `.where()` → `.groupBy()` → `.orderBy()` → `.select()` → `.fetchPage()`. **select() ALWAYS LAST**
+- **Tables:** `ARTICLE_TABLE` from `Tables` (never `ArticleTable.$`). For `@OneToMany`/`@ManyToMany` use `ARTICLE_TABLE_EX`
+- **Dynamic predicates:** `eqIf()`/`likeIf()`/`geIf()` — skip when null
+- **like()** adds `%` automatically — never add `%` manually. Case-insensitive: `ilike()`
+- **Joins are implicit** — Jimmer auto-JOINs on FK/association navigation
+- **Multi-column results** — use `@TypedTuple` + generated Mapper, never raw `Tuple2`/`Tuple3`
 
-## Process
+## Operators
 
-1. **Understand data requirements** — what data, which entities, filters, sorting, pagination, window functions?
-2. **Choose approach:** `createQuery` (basic), `createSubQuery` (nested), `createBaseQuery` + `asBaseTable` (window functions), `createUpdate`/`createDelete` (bulk)
-3. **Build query** with typed table expressions, dynamic predicates, and View/Fetcher for result shaping
-4. **Generate code** in the user's language (Kotlin or Java)
-
----
-
-# Query Reference
-
-## Query Method Order (CRITICAL)
-
-Methods MUST be called in this order:
-
-1. `createQuery(table)`
-2. `.where(...)` — filters
-3. `.groupBy(...)` — grouping (if needed)
-4. `.having(...)` — group filters (if needed)
-5. `.orderBy(...)` — sorting
-6. `.select(...)` — projection (**ALWAYS LAST** before terminal)
-7. `.fetchPage()` / `.execute()` — terminal operation
-
-```java
-// WRONG — select before orderBy
-sql.createQuery(t).select(t).orderBy(t.createdAt().desc())
-
-// CORRECT — orderBy before select
-sql.createQuery(t).orderBy(t.createdAt().desc()).select(t)
-```
+| Operator | Method | Dynamic (null-safe) |
+|---|---|---|
+| Equal | `.eq()` | `.eqIf()` |
+| Not equal | `.ne()` | `.neIf()` |
+| Greater/Less | `.gt()` / `.ge()` / `.lt()` / `.le()` | `+If` variants |
+| In / Not in | `.in(list)` / `.notIn(list)` | — |
+| Like | `.like()` | `.likeIf()` |
+| Null check | `.isNull()` / `.isNotNull()` | — |
 
 ---
 
 ## createQuery
 
-```kotlin
-sql.createQuery(Article::class) {
-    where(table.status eq ArticleStatus.PUBLISHED)
-    orderBy(table.createdAt.desc())
-    select(table.fetch(ArticleListView::class))
-}.fetchPage(page, size)
-```
-
 ```java
 var t = ARTICLE_TABLE;
 sql.createQuery(t)
-    .where(t.status().eq(ArticleStatus.PUBLISHED))
+    .where(t.status().eqIf(statusFilter))
+    .where(t.title().likeIf(titleFilter, LikeMode.ANYWHERE))
     .orderBy(t.createdAt().desc())
-    .select(t.fetch(ArticleListView.class))
+    .select(t.fetch(viewType))
     .fetchPage(page, size);
-```
-
-## Where Clauses
-
-```kotlin
-// AND — multiple predicates
-where(table.status eq ArticleStatus.PUBLISHED, table.createdAt ge startDate)
-
-// OR
-where(or(table.status eq ArticleStatus.DRAFT, table.status eq ArticleStatus.REVIEW))
-
-// Dynamic (applied only if non-null)
-where(table.title `like?` titleFilter)
-where(table.status `eq?` statusFilter)
-```
-
-```java
-.where(t.title().likeIf(titleFilter, LikeMode.ANYWHERE))
-.where(t.status().eqIf(statusFilter))
-```
-
-| Operator | Kotlin | Java |
-|---|---|---|
-| Equal | `eq` / `eq?` | `.eq()` / `.eqIf()` |
-| Not equal | `ne` / `ne?` | `.ne()` / `.neIf()` |
-| Greater than | `gt` / `gt?` | `.gt()` / `.gtIf()` |
-| Greater or equal | `ge` / `ge?` | `.ge()` / `.geIf()` |
-| Less than | `lt` / `lt?` | `.lt()` / `.ltIf()` |
-| Less or equal | `le` / `le?` | `.le()` / `.leIf()` |
-| Between | `between(a, b)` | `.between(a, b)` |
-| In / Not in | `valueIn(list)` | `.in(list)` / `.notIn(list)` |
-| Null check | `isNull()` / `isNotNull()` | `.isNull()` / `.isNotNull()` |
-| Like | `like` / `like?` | `.like()` / `.likeIf()` |
-
-All `*If` methods (Java) and `*?` operators (Kotlin) skip the predicate when the value is null.
-
-LikeModes: `EXACT`, `START` (value%), `END` (%value), `ANYWHERE` (%value%, default). Case-insensitive: `ilike()`.
-
-## Joins
-
-```kotlin
-// Implicit — Jimmer auto-JOINs on FK navigation
-where(table.category.name eq "Technology")
-
-// Explicit
-val authorTable = table.join(Article::author)
-val categoryTable = table.outerJoin(Article::category)
-```
-
-```java
-// TableEx for @OneToMany/@ManyToMany — Table only has FK navigation
-var t = ARTICLE_TABLE_EX;
-sql.createQuery(t)
-    .where(t.tags().id().eqIf(tagId))  // tags is @ManyToMany — needs TableEx
-```
-
-## Pagination
-
-```kotlin
-// Recommended
-query.fetchPage(pageIndex, pageSize)
-// page.rows, page.totalRowCount, page.totalPageCount
-
-// Manual
-query.limit(pageSize, offset.toLong()).execute()
-```
-
-## Aggregation
-
-```kotlin
-sql.createQuery(Article::class) {
-    groupBy(table.category.id)
-    select(table.category.id, count(table))
-}.execute()
 ```
 
 ## Subqueries
 
 ```java
-// Subquery in WHERE — use the same TableEx variable throughout
-var t = ARTICLE_TABLE_EX;
+var t = ARTICLE_TABLE_EX;  // TableEx for @ManyToMany navigation
 sql.createQuery(t)
-    .where(tagIds == null || tagIds.isEmpty() ? null :
-        t.id().in(
-            sql.createSubQuery(t)
-                .where(t.tags().id().in(tagIds))
-                .select(t.id())
-        )
-    )
+    .where(t.id().in(
+        sql.createSubQuery(t)
+            .where(t.tags().id().in(tagIds))
+            .select(t.id())
+    ))
     .select(t.fetch(viewType))
     .fetchPage(page, size);
 ```
 
-## @TypedTuple + TupleMapper — Multi-Column Results
+## @TypedTuple — Multi-Column Results
 
-When a query returns entity + computed values (ratings, rankings, counts), use `@TypedTuple` to get a typed result object instead of raw `Tuple2`/`Tuple3`.
-
-### Step 1: Define the tuple class
+When query returns entity + computed values, define a `@TypedTuple` class — Jimmer generates `*Mapper` with fluent builder.
 
 ```java
 @TypedTuple
-public class RatedRecipe {
-    private final RecipeListView recipe;
+public class RatedArticle {
+    private final ArticleListView article;
     private final Double avgRating;
-
-    public RatedRecipe(RecipeListView recipe, Double avgRating) {
-        this.recipe = recipe;
-        this.avgRating = avgRating;
-    }
-    // getters
+    private final Long commentCount;
+    // constructor + getters
 }
-```
 
-Jimmer generates `RatedRecipeMapper` with a fluent builder.
-
-### Step 2: Use in query
-
-```java
-.select(RatedRecipeMapper
-    .recipe(t.fetch(RecipeListView.class))
-    .avgRating(avgRatingExpression)
+// Mapper fields match constructor order. Use in .select():
+.select(RatedArticleMapper
+    .article(t.fetch(ArticleListView.class))
+    .avgRating(avgRatingExpr)
+    .commentCount(commentCountExpr)
 )
-.fetchPage(page, size);
 ```
 
-### Full example with window function
+## Window Functions (createBaseQuery)
+
+`createBaseQuery` + `addSelect` + `asBaseTable` for window functions and multi-column projections.
+
+**`addSelect()` order determines `get_1()`, `get_2()`, `get_3()` indices on the base table.**
 
 ```java
-var baseOrder = sql.createBaseQuery(t)
-    .where(t.status().eq(OrderStatus.COMPLETED))
-    .addSelect(t)
-    .addSelect(Expression.numeric().sql(Long.class,
-        "row_number() over(order by %e desc)", t.total()))
+var t = ORDER_TABLE;
+
+// Step 1: base query with addSelect in order
+var base = sql.createBaseQuery(t)
+    .where(t.status().eq(Status.ACTIVE))
+    .addSelect(t)                          // get_1() → entity
+    .addSelect(t.total())                  // get_2() → total
+    .addSelect(Expression.numeric().sql(   // get_3() → rank
+        Long.class,
+        "row_number() over(order by %e desc, %e asc)",
+        t.total(), t.id()))
     .asBaseTable();
 
-sql.createQuery(baseOrder)
+// Step 2: query the base table, map with TypedTuple Mapper
+sql.createQuery(base)
     .select(RankedOrderMapper
-        .order(baseOrder.get_1().fetch(OrderListView.class))
-        .position(baseOrder.get_2())
-    )
-    .fetchPage(page, pageSize);
+        .order(base.get_1().fetch(OrderListView.class))
+        .total(base.get_2())
+        .position(base.get_3()))
+    .fetchPage(page, size);
 ```
 
-**`Expression.numeric().sql()` requires the `.sql()` call with a SQL string:**
+## Expression.numeric().sql()
+
+**Always include `.sql()` with type + SQL string.** `Expression.numeric()` alone is incomplete.
 
 ```java
-// WRONG — incomplete, returns nothing useful
-Expression.numeric()
+// Scalar subquery as expression
+Expression.numeric().sql(Double.class,
+    "(SELECT AVG(r.rating) FROM review r WHERE r.recipe_id = %e)", t.id())
 
-// CORRECT — must call .sql() with SQL string and type
-Expression.numeric().sql(Long.class, "row_number() over(order by %e desc)", t.total())
-Expression.numeric().sql(Double.class, "(SELECT AVG(r.rating) FROM review r WHERE r.recipe_id = %e)", t.id())
+// Window function
+Expression.numeric().sql(Long.class,
+    "row_number() over(order by %e desc)", t.score())
 ```
 
-Expression placeholders: `%e` — column/expression, `%v` — bound parameter.
+Placeholders: `%e` — column/expression, `%v` — bound parameter.
 
-## Bulk Update / Delete
+## Aggregation / Bulk Operations
 
-```kotlin
-sql.createUpdate(Article::class) {
-    where(table.status eq ArticleStatus.DRAFT)
-    set(table.status, ArticleStatus.ARCHIVED)
-}.execute()
+```java
+// Aggregation
+sql.createQuery(t).groupBy(t.category().id())
+    .select(t.category().id(), t.count()).execute();
 
-sql.createDelete(Article::class) {
-    where(table.status eq ArticleStatus.ARCHIVED)
-}.execute()
+// Bulk update
+sql.createUpdate(t).where(t.status().eq(Status.DRAFT))
+    .set(t.status(), Status.ARCHIVED).execute();
+
+// Bulk delete
+sql.createDelete(t).where(t.status().eq(Status.ARCHIVED)).execute();
 ```
 
-## Fetching Single Results
+## Single Results
 
-```kotlin
-query.fetchOneOrNull()     // nullable
-query.fetchOne()           // throws if not found
-query.fetchFirstOrNull()   // first of many
-```
+`query.fetchOneOrNull()` (nullable), `query.fetchOne()` (throws), `query.fetchFirstOrNull()` (first of many).
 
 ---
 
 # DTO Language Reference
 
-## File Location & Export
+One `.dto` file per entity. Export declaration + DTO definitions:
 
 ```
-// src/main/dto/Article.dto
 export com.example.entity.Article
     -> package com.example.entity.dto
-```
 
-One `.dto` file per entity.
-
-## View / Input / Specification
-
-```
 ArticleListView {
     id
     title
@@ -266,26 +154,11 @@ ArticleListView {
     category { id; name }
 }
 
-ArticleDetailView {
-    #allScalars
-    category { id; name }
-    comments { id; content; createdAt }
-}
-
 input ArticleCreateInput {
     title
     content
-    id(category) as categoryId        // @ManyToOne — single ID
-    id(tags) as tagIds                // @ManyToMany — List<ID>
-}
-
-input ArticleUpdateInput {
-    id
-    title
-    content
-    id(category) as categoryId
-    id(tags) as tagIds
-    version
+    id(category) as categoryId     // @ManyToOne — single ID
+    id(tags) as tagIds             // @ManyToMany — List<ID> (always id(), NOT ids())
 }
 
 specification ArticleSpec {
@@ -302,9 +175,8 @@ specification ArticleSpec {
 -content                 // exclude field
 title as articleTitle    // rename/alias
 category? { id; name }  // force nullable
-id(category) as catId   // @ManyToOne FK — single ID
-id(tags) as tagIds      // @ManyToMany — List<ID> (NOT ids(), always id())
+id(category) as catId   // @ManyToOne — single ID
+id(tags) as tagIds      // @ManyToMany — List<ID>
 flat(author) { name as authorName }  // flatten nested
 children* { #allScalars }            // recursive (tree)
-children*[depth=3] { #allScalars }   // recursive with limit
 ```

@@ -5,6 +5,8 @@ TOOLKIT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOL="claude"
 USE_SYMLINK=false
 INSTALL_MCP=false
+INSTALL_KOTLIN=false
+INSTALL_QUARKUS=false
 TARGET_PROJECT=""
 
 # Colors
@@ -33,13 +35,16 @@ print_usage() {
     echo ""
     echo "Options:"
     echo -e "  ${CYAN}--tool${NC} claude|qwen|gigacode       Target CLI tool (default: claude)"
+    echo -e "  ${CYAN}--kotlin${NC}                          Add Kotlin reference to context"
+    echo -e "  ${CYAN}--quarkus${NC}                         Add Quarkus reference to context"
     echo -e "  ${CYAN}--symlink${NC}                         Use symlinks instead of copies"
     echo -e "  ${CYAN}--mcp${NC}                             Install MCP server (Jimmer docs + GitHub issues)"
     echo ""
     echo "Examples:"
     echo -e "  ${DIM}./install.sh /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --mcp /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --tool qwen /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh --kotlin /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh --kotlin --quarkus --mcp /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh --tool gigacode /path/to/project${NC}"
 }
 
 # Parse arguments
@@ -51,6 +56,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --symlink)
             USE_SYMLINK=true
+            shift
+            ;;
+        --kotlin)
+            INSTALL_KOTLIN=true
+            shift
+            ;;
+        --quarkus)
+            INSTALL_QUARKUS=true
             shift
             ;;
         --mcp)
@@ -150,13 +163,22 @@ install_file() {
     fi
 }
 
-# 1. Instruction files (core — always in context)
+# Build list of optional files (not auto-imported unless flag is set)
+OPTIONAL_FILES=""
+[ "$INSTALL_KOTLIN" = false ] && OPTIONAL_FILES="$OPTIONAL_FILES jimmer-kotlin.md"
+[ "$INSTALL_QUARKUS" = false ] && OPTIONAL_FILES="$OPTIONAL_FILES jimmer-quarkus.md"
+
+# 1. Instruction files
 log_header "Instruction files"
 FILE_COUNT=0
 for file in "$TOOLKIT_DIR"/instructions/*.md; do
     filename=$(basename "$file")
-    install_file "$file" "$TARGET_PROJECT/$CONFIG_DIR/$filename" "$filename"
-    FILE_COUNT=$((FILE_COUNT + 1))
+    if echo "$OPTIONAL_FILES" | grep -qw "$filename"; then
+        install_file "$file" "$TARGET_PROJECT/$CONFIG_DIR/$filename" "${DIM}optional${NC} $filename"
+    else
+        install_file "$file" "$TARGET_PROJECT/$CONFIG_DIR/$filename" "$filename"
+        FILE_COUNT=$((FILE_COUNT + 1))
+    fi
 done
 
 # 2. Skills/commands
@@ -256,6 +278,10 @@ fi
 IMPORTS=""
 for file in "$TOOLKIT_DIR"/instructions/*.md; do
     filename=$(basename "$file")
+    # Skip optional files from auto-import
+    if echo "$OPTIONAL_FILES" | grep -qw "$filename"; then
+        continue
+    fi
     IMPORTS="${IMPORTS}@${CONFIG_DIR}/${filename}
 "
 done
