@@ -13,7 +13,7 @@ description: "Build a complex Jimmer query with typed DSL — createQuery, subQu
 - **Joins are implicit** — Jimmer auto-JOINs on FK/association navigation
 - **Multi-column results** — use `@TypedTuple` Java class + generated Mapper. Computed values (COUNT, AVG) CANNOT go in .dto files — only via `@TypedTuple`
 - **Generate ONLY what was asked.** Don't add extra methods or conditions the user didn't request
-- **After generating code, compile the project.** Fix errors before finishing
+- **After generating code, compile the project** (`./mvnw compile` or `./gradlew build`). Fix errors before finishing
 
 ## Operators
 

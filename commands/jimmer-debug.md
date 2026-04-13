@@ -35,7 +35,7 @@ Diagnose Jimmer errors using the error catalog below.
    - Code example showing the fix
    - How to verify the fix worked
 
-6. **Compile the project** after applying fixes. Verify no compilation errors remain.
+6. **Compile the project** after applying fixes (`./mvnw compile` or `./gradlew build`). Fix any remaining errors.
 
 ## Common Quick Fixes
 

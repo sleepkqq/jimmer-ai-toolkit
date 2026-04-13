@@ -59,7 +59,7 @@ Before generating, scan existing project source files and match code style, pack
 
 **Do NOT generate database migrations** — use `/jimmer-migration` for that separately.
 
-7. **Compile the project** to verify everything works. Fix any compilation errors before finishing.
+7. **Compile the project** to verify everything works. Detect build tool: `./mvnw compile` or `mvn compile` (Maven), `./gradlew build` (Gradle). Prefer wrapper (`./mvnw`, `./gradlew`) if present. Fix any compilation errors before finishing.
 
 ## Output Format
 
