@@ -87,7 +87,16 @@ function extractContent(html: string): string {
 	const lines: string[] = [];
 	processNode(container, lines);
 
-	const result = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+	// Strip any remaining HTML tags and decode entities
+	const result = lines.join("\n")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&#x27;/g, "'").replace(/&#39;/g, "'")
+		.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+		.replace(/&amp;/g, "&").replace(/&quot;/g, '"')
+		.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)))
+		.replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
 
 	// Truncate at a reasonable boundary
 	if (result.length <= MAX_CHARS) return result;
@@ -126,7 +135,14 @@ function processNode(node: HTMLElement, lines: string[]) {
 		// Code blocks
 		if (tag === "pre") {
 			const codeEl = child.querySelector("code");
-			const codeText = codeEl ? codeEl.text.trim() : child.text.trim();
+			// Strip all HTML tags inside code to get pure text
+			const rawHtml = codeEl ? codeEl.innerHTML : child.innerHTML;
+			const codeText = rawHtml
+				.replace(/<br\s*\/?>/gi, "\n")
+				.replace(/<[^>]+>/g, "")
+				.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+				.replace(/&amp;/g, "&").replace(/&quot;/g, '"')
+				.trim();
 			const lang = codeEl?.getAttribute("class")?.match(/language-(\w+)/)?.[1] || "";
 			if (codeText) {
 				lines.push("", "```" + lang, codeText, "```", "");

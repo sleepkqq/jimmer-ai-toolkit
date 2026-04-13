@@ -30,20 +30,24 @@ Before generating, scan existing project source files and match code style, pack
    - `@OnDissociate(DissociateAction.DELETE)` on owned `@OneToMany` collections
    - `@Serialized` for JSON columns
    - `@Table` only if table name differs from snake_case entity name
+   - Do NOT add `@Column` — Jimmer auto-maps camelCase → snake_case (e.g., `timeCreated` → `time_created`)
 
-4. **Generate .dto file** (Views and Inputs):
-   - Create `src/main/dto/{EntityName}.dto` with export declaration
-   - Define `{Entity}ListView` — lightweight projection for list endpoints
-   - Define `{Entity}DetailView` — full projection for detail endpoints
-   - Define `input {Entity}CreateInput` — fields for creation (no id, no audit fields)
-   - Define `input {Entity}UpdateInput` — fields for update (include id and version if @Version)
-   - Use `#allScalars` then exclude what's not needed, include nested associations as needed
+4. **Generate .dto file** — only the DTOs that are needed right now:
+   - Create `src/main/dto/{EntityName}.dto` with **one export per file** (only this entity)
+   - Generate only what the user asked for. Typical set for CRUD:
+     - `{Entity}View` — if only one view is needed
+     - `{Entity}ListView` + `{Entity}DetailView` — if list and detail endpoints differ
+     - `input {Entity}CreateInput` — if creation is needed
+     - `input {Entity}UpdateInput` — if update is needed (include id and version if @Version)
+   - Do NOT generate all 4 by default — ask what's needed or infer from context
+   - Do NOT create generic "Input" with `#allScalars` — be specific about fields
 
 5. **Generate the Repository:**
    - Kotlin: extend `KRepository<Entity, UUID>` (preferred), use default methods for complex queries
    - Java: extend `JRepository<Entity, UUID>` (preferred), use default methods for complex queries
    - Use generic `viewType` parameter — never hardcode View classes
    - Don't reimplement built-in methods (findNullable, save, findAll) — use them directly
+   - Don't generate all possible `findBy*` methods — only add what's needed right now
    - If project already uses raw KSqlClient/JSqlClient pattern, follow that instead
 
 6. **Verify** the design:
@@ -59,7 +63,7 @@ Before generating, scan existing project source files and match code style, pack
 
 Provide:
 1. Entity interface code
-2. `.dto` file with ListView, DetailView, CreateInput, UpdateInput
+2. `.dto` file with only the DTOs needed for the current task
 3. Repository interface (only custom methods, don't reimplement built-ins)
 4. Any warnings about potential issues
 
