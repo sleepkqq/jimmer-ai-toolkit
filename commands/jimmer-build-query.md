@@ -58,14 +58,24 @@ sql.createQuery(t)
 
 When query returns entity + computed values (counts, ratings, rankings), **create a separate Java class with `@TypedTuple`** — Jimmer generates `*Mapper`.
 
-**This is NOT a .dto View.** It's a regular Java class. Computed values (COUNT, AVG, etc.) CANNOT be expressed in .dto language — only in Java/Kotlin code via `@TypedTuple`.
+**This is NOT a .dto View.** It's a regular Java class. Computed values CANNOT be expressed in .dto.
+
+**@TypedTuple fields should be high-level results** — a View (entity projection) + computed values. Do NOT list individual entity fields — use a View class for the entity part:
 
 ```java
-// Step 1: Define @TypedTuple class (regular Java class, NOT .dto)
+// WRONG — listing entity fields manually
 @TypedTuple
-public class RatedArticle {
+public class ArticleWithCount {
+    private final UUID id;           // DON'T DO THIS
+    private final String title;      // DON'T DO THIS
+    private final String status;     // DON'T DO THIS
+    private final Long commentCount;
+}
+
+// CORRECT — View for entity, only computed fields added separately
+@TypedTuple
+public class ArticleWithCount {
     private final ArticleListView article;   // View from .dto file
-    private final Double avgRating;          // computed via Expression
     private final Long commentCount;         // computed via Expression
     // constructor + getters
 }
