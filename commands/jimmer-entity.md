@@ -1,5 +1,5 @@
 ---
-description: "Design a new Jimmer entity with .dto file and repository"
+description: "Design a new Jimmer entity with repository"
 ---
 
 # Entity Designer
@@ -30,44 +30,27 @@ Before generating, scan existing project source files and match code style, pack
    - `@OnDissociate(DissociateAction.DELETE)` on owned `@OneToMany` collections
    - `@Serialized` for JSON columns
    - `@Table` only if table name differs from snake_case entity name
-   - Do NOT add `@Column` — Jimmer auto-maps camelCase → snake_case (e.g., `timeCreated` → `time_created`)
+   - **NEVER add `@Column`** — Jimmer auto-maps camelCase → snake_case (`impactLevel` → `impact_level`)
+   - `@Nullable` (org.jetbrains.annotations) for nullable fields — non-null by default
 
-4. **Generate .dto file** — only the DTOs that are needed right now:
-   - Create `src/main/dto/{EntityName}.dto` with **one export per file** (only this entity)
-   - **Use `#allScalars` then `-field` to exclude** — less fragile than listing every field
-   - Generate only what the user asked for:
-     - `{Entity}View` — if only one view is needed
-     - `{Entity}ListView` + `{Entity}DetailView` — if list and detail differ
-     - `input {Entity}CreateInput` / `input {Entity}UpdateInput` — if CRUD needed
-   - Do NOT generate all 4 by default — infer from context
-   - **ONLY use .dto operators listed in the toolkit.** Do NOT invent operators like `count()`, `avg()` — computed values go in `@TypedTuple` Java classes
+4. **Generate the Repository:**
+   - Java: `JRepository<Entity, UUID>`, Kotlin: `KRepository<Entity, UUID>`
+   - Generate ONLY methods the user asked for — don't add findBy* for every field
+   - Don't reimplement built-in methods (findNullable, save, findAll)
 
-5. **Generate the Repository:**
-   - Kotlin: extend `KRepository<Entity, UUID>` (preferred), use default methods for complex queries
-   - Java: extend `JRepository<Entity, UUID>` (preferred), use default methods for complex queries
-   - Use generic `viewType` parameter — never hardcode View classes
-   - Don't reimplement built-in methods (findNullable, save, findAll) — use them directly
-   - Don't generate all possible `findBy*` methods — only add what's needed right now
-   - If project already uses raw KSqlClient/JSqlClient pattern, follow that instead
+5. **Verify** — field ordering, @JoinColumn placement, @OnDissociate on owned collections
 
-6. **Verify** the design:
-   - Field ordering correct?
-   - @JoinColumn placement correct?
-   - @OnDissociate on all owned collections?
-   - No @Key on @OneToOne shared children?
-   - DraftInterceptor in model module (if needed)?
+6. **Compile** (`./mvnw compile` or `./gradlew build`). Fix errors before finishing.
 
-**Do NOT generate database migrations** — use `/jimmer-migration` for that separately.
-
-7. **Compile the project** to verify everything works. Detect build tool: `./mvnw compile` or `mvn compile` (Maven), `./gradlew build` (Gradle). Prefer wrapper (`./mvnw`, `./gradlew`) if present. Fix any compilation errors before finishing.
+**Do NOT generate .dto files** — use `/jimmer-dto` for that separately.
+**Do NOT generate migrations** — use `/jimmer-migration` for that separately.
 
 ## Output Format
 
 Provide:
 1. Entity interface code
-2. `.dto` file with only the DTOs needed for the current task
-3. Repository interface (only custom methods, don't reimplement built-ins)
-4. Any warnings about potential issues
+2. Repository interface (only custom methods)
+3. Any warnings about potential issues
 
 ---
 
@@ -110,8 +93,5 @@ my-project/
 
 | Stack | Code |
 |---|---|
-| Spring Boot + Kotlin | `@Service class MyService(private val sql: KSqlClient)` |
 | Spring Boot + Java | `@Service @RequiredArgsConstructor class MyService { private final JSqlClient sql; }` |
-| Quarkus + Kotlin | `@ApplicationScoped class MyService(@Default val sql: KSqlClient)` |
 | Quarkus + Java | `@ApplicationScoped class MyService { @Inject JSqlClient sql; }` |
-

@@ -62,7 +62,21 @@ public interface Model extends Auditable {
 ## @Table / @Column
 
 - `@Table` — only if table name ≠ snake_case of entity name
-- `@Column` — Jimmer auto-maps camelCase → snake_case. Do NOT add `@Column` when default works. Only for non-standard names: `@Column(name = "usr_name")`
+
+**NEVER add `@Column` for standard snake_case mapping.** Jimmer auto-maps camelCase → snake_case:
+
+```java
+// WRONG — @Column is redundant, default mapping already does this
+@Column(name = "impact_level")
+int impactLevel();
+
+// CORRECT — no @Column needed
+int impactLevel();          // → impact_level
+String firstName();         // → first_name
+Instant timeCreated();      // → time_created
+```
+
+Only use `@Column` for non-standard names where default mapping doesn't work: `@Column(name = "usr_nm")`
 
 ---
 

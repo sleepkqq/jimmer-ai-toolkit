@@ -13,8 +13,9 @@ Core Jimmer knowledge — always loaded into AI context (~50KB):
 
 ### Commands (`commands/`)
 Interactive workflows with full reference material built-in:
-- `/jimmer-entity` — design a new entity with .dto file and repository
-- `/jimmer-build-query` — build complex typed queries, @TypedTuple, DTO language reference
+- `/jimmer-entity` — design a new entity with repository
+- `/jimmer-dto` — generate .dto file (Views, Inputs) for an entity
+- `/jimmer-build-query` — build complex typed queries, @TypedTuple
 - `/jimmer-migration` — generate database migration (Liquibase/Flyway)
 - `/jimmer-debug` — diagnose Jimmer errors with full error catalog
 

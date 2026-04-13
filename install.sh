@@ -322,7 +322,7 @@ else
         done <<< "$IMPORTS"
         echo ""
         echo "# Extended Jimmer knowledge available via commands:"
-        echo "# /jimmer-entity, /jimmer-build-query, /jimmer-migration, /jimmer-debug"
+        echo "# /jimmer-entity, /jimmer-dto, /jimmer-build-query, /jimmer-migration, /jimmer-debug"
     } > "$ENTRY_PATH"
     log_install "created $ENTRY_FILE"
 fi
