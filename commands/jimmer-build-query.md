@@ -11,7 +11,9 @@ description: "Build a complex Jimmer query with typed DSL — createQuery, subQu
 - **Dynamic predicates:** `eqIf()`/`likeIf()`/`geIf()` — skip when null
 - **like()** adds `%` automatically — never add `%` manually. Case-insensitive: `ilike()`
 - **Joins are implicit** — Jimmer auto-JOINs on FK/association navigation
-- **Multi-column results** — use `@TypedTuple` + generated Mapper, never raw `Tuple2`/`Tuple3`
+- **Multi-column results** — use `@TypedTuple` Java class + generated Mapper. Computed values (COUNT, AVG) CANNOT go in .dto files — only via `@TypedTuple`
+- **Generate ONLY what was asked.** Don't add extra methods or conditions the user didn't request
+- **After generating code, compile the project.** Fix errors before finishing
 
 ## Operators
 
@@ -52,25 +54,35 @@ sql.createQuery(t)
     .fetchPage(page, size);
 ```
 
-## @TypedTuple — Multi-Column Results
+## @TypedTuple — Multi-Column Results (entity + computed values)
 
-When query returns entity + computed values, define a `@TypedTuple` class — Jimmer generates `*Mapper` with fluent builder.
+When query returns entity + computed values (counts, ratings, rankings), **create a separate Java class with `@TypedTuple`** — Jimmer generates `*Mapper`.
+
+**This is NOT a .dto View.** It's a regular Java class. Computed values (COUNT, AVG, etc.) CANNOT be expressed in .dto language — only in Java/Kotlin code via `@TypedTuple`.
 
 ```java
+// Step 1: Define @TypedTuple class (regular Java class, NOT .dto)
 @TypedTuple
 public class RatedArticle {
-    private final ArticleListView article;
-    private final Double avgRating;
-    private final Long commentCount;
+    private final ArticleListView article;   // View from .dto file
+    private final Double avgRating;          // computed via Expression
+    private final Long commentCount;         // computed via Expression
     // constructor + getters
 }
 
-// Mapper fields match constructor order. Use in .select():
-.select(RatedArticleMapper
-    .article(t.fetch(ArticleListView.class))
-    .avgRating(avgRatingExpr)
-    .commentCount(commentCountExpr)
-)
+// Step 2: Jimmer generates RatedArticleMapper. Use in .select():
+var avgExpr = Expression.numeric().sql(Double.class,
+    "(SELECT AVG(r.rating) FROM review r WHERE r.article_id = %e)", t.id());
+var countExpr = Expression.numeric().sql(Long.class,
+    "(SELECT COUNT(*) FROM comment c WHERE c.article_id = %e)", t.id());
+
+sql.createQuery(t)
+    .orderBy(avgExpr.desc())
+    .select(RatedArticleMapper
+        .article(t.fetch(ArticleListView.class))
+        .avgRating(avgExpr)
+        .commentCount(countExpr))
+    .fetchPage(page, size);
 ```
 
 ## Window Functions (createBaseQuery)
@@ -141,16 +153,15 @@ sql.createDelete(t).where(t.status().eq(Status.ARCHIVED)).execute();
 
 # DTO Language Reference
 
-One `.dto` file per entity. Export declaration + DTO definitions:
+One `.dto` file per entity. **Use `#allScalars` then `-field` to exclude** — don't list every field manually. **ONLY use operators listed below** — do NOT invent SQL functions in .dto.
 
 ```
 export com.example.entity.Article
     -> package com.example.entity.dto
 
 ArticleListView {
-    id
-    title
-    createdAt
+    #allScalars
+    -content                            // exclude heavy fields
     category { id; name }
 }
 

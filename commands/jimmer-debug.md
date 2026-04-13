@@ -32,8 +32,10 @@ Diagnose Jimmer errors using the error catalog below.
 5. **Provide diagnosis:**
    - Root cause (why this error happened)
    - Specific fix (what annotation/code/constraint to change)
-   - Code example showing the fix (using correct DSL: Kotlin `Entity { ... }`, Java `Immutables.createEntity()`)
+   - Code example showing the fix
    - How to verify the fix worked
+
+6. **Compile the project** after applying fixes. Verify no compilation errors remain.
 
 ## Common Quick Fixes
 

@@ -34,13 +34,13 @@ Before generating, scan existing project source files and match code style, pack
 
 4. **Generate .dto file** — only the DTOs that are needed right now:
    - Create `src/main/dto/{EntityName}.dto` with **one export per file** (only this entity)
-   - Generate only what the user asked for. Typical set for CRUD:
+   - **Use `#allScalars` then `-field` to exclude** — less fragile than listing every field
+   - Generate only what the user asked for:
      - `{Entity}View` — if only one view is needed
-     - `{Entity}ListView` + `{Entity}DetailView` — if list and detail endpoints differ
-     - `input {Entity}CreateInput` — if creation is needed
-     - `input {Entity}UpdateInput` — if update is needed (include id and version if @Version)
-   - Do NOT generate all 4 by default — ask what's needed or infer from context
-   - Do NOT create generic "Input" with `#allScalars` — be specific about fields
+     - `{Entity}ListView` + `{Entity}DetailView` — if list and detail differ
+     - `input {Entity}CreateInput` / `input {Entity}UpdateInput` — if CRUD needed
+   - Do NOT generate all 4 by default — infer from context
+   - **ONLY use .dto operators listed in the toolkit.** Do NOT invent operators like `count()`, `avg()` — computed values go in `@TypedTuple` Java classes
 
 5. **Generate the Repository:**
    - Kotlin: extend `KRepository<Entity, UUID>` (preferred), use default methods for complex queries
@@ -58,6 +58,8 @@ Before generating, scan existing project source files and match code style, pack
    - DraftInterceptor in model module (if needed)?
 
 **Do NOT generate database migrations** — use `/jimmer-migration` for that separately.
+
+7. **Compile the project** to verify everything works. Fix any compilation errors before finishing.
 
 ## Output Format
 

@@ -13,16 +13,18 @@ Two mechanisms to control loaded data:
 
 ## View — Output DTOs
 
-`View<E>` is a compile-time projection. Defined in `.dto` files, generates classes automatically.
+`View<E>` is a compile-time projection. Defined in `.dto` files.
+
+**Prefer `#allScalars` then exclude** — less fragile than listing every field:
 
 ```
 export com.example.entity.Article
     -> package com.example.entity.dto
 
 ArticleListView {
-    id
-    title
-    createdAt
+    #allScalars
+    -content              // exclude heavy fields
+    -instructions
     category { id; name }
 }
 
@@ -70,6 +72,8 @@ input ArticleUpdateInput {
 ---
 
 ## .dto Syntax Reference
+
+**ONLY use operators listed below.** The .dto language has a fixed syntax — do NOT invent operators like `count()`, `avg()`, `sum()` or any SQL functions. Computed values (counts, ratings) belong in `@TypedTuple` classes, NOT in .dto files.
 
 ```
 #allScalars              // all non-association properties
