@@ -206,7 +206,8 @@ if [ "$INSTALL_MCP" = true ]; then
       "command": "node",
       "args": ["$MCP_DIST"],
       "env": {
-        "GITHUB_TOKEN": "\${GITHUB_TOKEN}"
+        "GITHUB_TOKEN": "\${GITHUB_TOKEN}",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
       }
     }
   }
@@ -232,7 +233,8 @@ MCPEOF
       "command": "node",
       "args": ["$MCP_DIST"],
       "env": {
-        "GITHUB_TOKEN": "\${GITHUB_TOKEN}"
+        "GITHUB_TOKEN": "\${GITHUB_TOKEN}",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
       }
     }
   }
