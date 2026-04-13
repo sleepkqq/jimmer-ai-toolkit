@@ -145,6 +145,25 @@ interface Article { ... }
 
 ---
 
+## @Column — Default Mapping
+
+Jimmer automatically maps camelCase properties to snake_case columns. **Do NOT add `@Column` when the default mapping works:**
+
+```
+timeCreated → time_created    (automatic, no @Column needed)
+categoryId  → category_id     (automatic)
+firstName   → first_name      (automatic)
+```
+
+Only use `@Column` when the actual column name does NOT follow snake_case convention:
+
+```kotlin
+@Column(name = "usr_name")
+val username: String  // column is "usr_name", not "user_name"
+```
+
+---
+
 ## Associations
 
 ### @ManyToOne

@@ -31,10 +31,11 @@ Interactive workflows with full reference material built-in:
 ## Installation
 
 ```bash
-./install.sh /path/to/project                          # Claude Code (default)
-./install.sh --tool qwen /path/to/project              # Qwen Code
-./install.sh --tool gigacode /path/to/project           # GigaCode
-./install.sh --mcp /path/to/project                    # with MCP server
+chmod +x install.sh                                     # grant execute permission (once)
+./install.sh /path/to/project                           # Claude Code (default)
+./install.sh --tool qwen /path/to/project               # Qwen Code
+./install.sh --tool gigacode /path/to/project            # GigaCode
+./install.sh --mcp /path/to/project                     # with MCP server
 ```
 
 ### MCP Setup
@@ -65,9 +66,9 @@ Safe to re-run on existing projects: skips identical files, appends missing impo
 | Component | Claude Code | Qwen Code | GigaCode |
 |---|---|---|---|
 | Instructions | `.claude/*.md` | `.qwen/*.md` | `.gigacode/*.md` |
-| Skills | `.claude/commands/*.md` | `.qwen/skills/*/SKILL.md` | `.gigacode/skills/*/SKILL.md` |
+| Commands | `.claude/commands/*.md` | `.qwen/commands/*.md` | `.gigacode/commands/*.md` |
 | Entry file | `CLAUDE.md` | `QWEN.md` | `GIGACODE.md` |
-| MCP (--mcp) | `.mcp.json` | `.mcp.json` | `.mcp.json` |
+| MCP (--mcp) | `.mcp.json` | `.qwen/settings.json` | `.gigacode/settings.json` |
 
 ## Compatibility
 

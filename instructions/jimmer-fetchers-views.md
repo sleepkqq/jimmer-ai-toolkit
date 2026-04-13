@@ -105,6 +105,13 @@ Page<ArticleListView> page = repository.viewer(ArticleListView.class).findAll(pa
 
 `Input<E>` is a compile-time DTO for write operations. Generates `toEntity()` method automatically — **never build entities manually from input data**.
 
+**Generate only the DTOs that are needed RIGHT NOW.** Don't create all possible combinations upfront:
+- One View per use case (e.g., `ListView` for lists, `DetailView` for detail)
+- One `CreateInput` and one `UpdateInput` if CRUD is needed
+- Don't create a generic "Input" with `#allScalars` — be specific about which fields are included
+
+Each `.dto` file exports **ONE entity only**. Never add export declarations for other entities in the same file.
+
 ### Defining Inputs in .dto files
 
 ```

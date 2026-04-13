@@ -20,7 +20,7 @@ Generate database migrations aligned with Jimmer entity annotations.
    - If no existing migrations found: Liquibase (YAML) or Flyway (SQL)?
 
 3. **Map Jimmer types to DB types:**
-   - UUID → `uuid`, String → `varchar`, Instant → `timestamptz`, Enum → `varchar(50)`, @Serialized → `jsonb`
+   - UUID → `uuid`, String → `varchar`, Instant → `timestamptz`, LocalDateTime → `timestamp`, Enum → `varchar(50)`, @Serialized → `jsonb`
 
 4. **Align constraints with annotations:**
    - `@OnDissociate(DELETE)` → FK with `ON DELETE CASCADE`
@@ -223,6 +223,7 @@ CREATE INDEX idx_article_tag_tag_id ON article_tag(tag_id);
 | `Long` | `bigint` | `bigint` |
 | `Boolean` | `boolean` | `tinyint(1)` |
 | `Instant` | `timestamptz` | `timestamp` |
+| `LocalDateTime` | `timestamp` | `timestamp` |
 | `LocalDate` | `date` | `date` |
 | `BigDecimal` | `numeric(19,4)` | `decimal(19,4)` |
 | Enum | `varchar(50)` | `varchar(50)` |

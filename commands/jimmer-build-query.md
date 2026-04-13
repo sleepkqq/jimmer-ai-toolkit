@@ -26,6 +26,28 @@ Build typed Jimmer queries using the patterns below.
 
 # Query Reference
 
+## Query Method Order (CRITICAL)
+
+Methods MUST be called in this order:
+
+1. `createQuery(table)`
+2. `.where(...)` — filters
+3. `.groupBy(...)` — grouping (if needed)
+4. `.having(...)` — group filters (if needed)
+5. `.orderBy(...)` — sorting
+6. `.select(...)` — projection (**ALWAYS LAST** before terminal)
+7. `.fetchPage()` / `.execute()` — terminal operation
+
+```java
+// WRONG — select before orderBy
+sql.createQuery(t).select(t).orderBy(t.createdAt().desc())
+
+// CORRECT — orderBy before select
+sql.createQuery(t).orderBy(t.createdAt().desc()).select(t)
+```
+
+---
+
 ## createQuery
 
 ```kotlin
@@ -184,6 +206,17 @@ sql.createQuery(baseOrder)
         .position(baseOrder.get_2())
     )
     .fetchPage(page, pageSize);
+```
+
+**`Expression.numeric().sql()` requires the `.sql()` call with a SQL string:**
+
+```java
+// WRONG — incomplete, returns nothing useful
+Expression.numeric()
+
+// CORRECT — must call .sql() with SQL string and type
+Expression.numeric().sql(Long.class, "row_number() over(order by %e desc)", t.total())
+Expression.numeric().sql(Double.class, "(SELECT AVG(r.rating) FROM review r WHERE r.recipe_id = %e)", t.id())
 ```
 
 Expression placeholders: `%e` — column/expression, `%v` — bound parameter.

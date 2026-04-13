@@ -93,12 +93,12 @@ case "$TOOL" in
     qwen)
         CONFIG_DIR=".qwen"
         ENTRY_FILE="QWEN.md"
-        SKILLS_DIR="$CONFIG_DIR/skills"
+        SKILLS_DIR="$CONFIG_DIR/commands"
         ;;
     gigacode)
         CONFIG_DIR=".gigacode"
         ENTRY_FILE="GIGACODE.md"
-        SKILLS_DIR="$CONFIG_DIR/skills"
+        SKILLS_DIR="$CONFIG_DIR/commands"
         ;;
 esac
 
@@ -163,13 +163,7 @@ done
 log_header "Skills/Commands"
 for file in "$TOOLKIT_DIR"/commands/*.md; do
     filename=$(basename "$file")
-    skillname="${filename%.md}"
-    if [ "$TOOL" = "claude" ]; then
-        install_file "$file" "$TARGET_PROJECT/$SKILLS_DIR/$filename" "$filename"
-    else
-        mkdir -p "$TARGET_PROJECT/$SKILLS_DIR/$skillname"
-        install_file "$file" "$TARGET_PROJECT/$SKILLS_DIR/$skillname/SKILL.md" "$skillname/SKILL.md"
-    fi
+    install_file "$file" "$TARGET_PROJECT/$SKILLS_DIR/$filename" "$filename"
 done
 
 # 3. MCP server
@@ -186,22 +180,25 @@ if [ "$INSTALL_MCP" = true ]; then
     fi
 
     if [ "$INSTALL_MCP" = true ]; then
-        MCP_JSON="$TARGET_PROJECT/.mcp.json"
-        if [ -f "$MCP_JSON" ]; then
-            if grep -q "jimmer-docs" "$MCP_JSON" 2>/dev/null; then
-                log_skip "jimmer-docs already in .mcp.json"
+        MCP_SERVER_BLOCK="\"jimmer-docs\": {
+      \"type\": \"stdio\",
+      \"command\": \"node\",
+      \"args\": [\"$MCP_DIST\"],
+      \"env\": { \"GITHUB_TOKEN\": \"\${GITHUB_TOKEN}\" }
+    }"
+
+        if [ "$TOOL" = "claude" ]; then
+            # Claude Code: .mcp.json in project root
+            MCP_FILE="$TARGET_PROJECT/.mcp.json"
+            if [ -f "$MCP_FILE" ]; then
+                if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
+                    log_skip "jimmer-docs already in .mcp.json"
+                else
+                    log_info ".mcp.json exists. Add this to your mcpServers section:"
+                    echo -e "    ${DIM}${MCP_SERVER_BLOCK}${NC}"
+                fi
             else
-                log_info ".mcp.json exists. Add this to your mcpServers section:"
-                echo ""
-                echo -e "    ${DIM}\"jimmer-docs\": {"
-                echo "      \"type\": \"stdio\","
-                echo "      \"command\": \"node\","
-                echo "      \"args\": [\"$MCP_DIST\"],"
-                echo -e "      \"env\": { \"GITHUB_TOKEN\": \"\${GITHUB_TOKEN}\" }"
-                echo -e "    }${NC}"
-            fi
-        else
-            cat > "$MCP_JSON" << MCPEOF
+                cat > "$MCP_FILE" << MCPEOF
 {
   "mcpServers": {
     "jimmer-docs": {
@@ -215,7 +212,34 @@ if [ "$INSTALL_MCP" = true ]; then
   }
 }
 MCPEOF
-            log_install "created .mcp.json"
+                log_install "created .mcp.json"
+            fi
+        else
+            # Qwen/GigaCode: mcpServers in settings.json inside config dir
+            MCP_FILE="$TARGET_PROJECT/$CONFIG_DIR/settings.json"
+            if [ -f "$MCP_FILE" ]; then
+                if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
+                    log_skip "jimmer-docs already in $CONFIG_DIR/settings.json"
+                else
+                    log_info "$CONFIG_DIR/settings.json exists. Add this to your mcpServers section:"
+                    echo -e "    ${DIM}${MCP_SERVER_BLOCK}${NC}"
+                fi
+            else
+                cat > "$MCP_FILE" << MCPEOF
+{
+  "mcpServers": {
+    "jimmer-docs": {
+      "command": "node",
+      "args": ["$MCP_DIST"],
+      "env": {
+        "GITHUB_TOKEN": "\${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+MCPEOF
+                log_install "created $CONFIG_DIR/settings.json"
+            fi
         fi
 
         echo ""

@@ -34,6 +34,8 @@ Don't mix — use Controller for Spring Boot, Resource for Quarkus.
 
 **For new projects, prefer KRepository/JRepository.** It provides built-in CRUD, abstract method queries, and access to `sql` client for complex queries inside default methods — all in one interface.
 
+**Only define custom methods that are actually needed.** JRepository/KRepository already provides findNullable, findById, save, deleteById, findAll, viewer(), etc. Don't generate all possible `findBy*` methods upfront — add them when business logic requires them.
+
 **Import depends on framework:**
 
 | Framework | KRepository import | JRepository import |
