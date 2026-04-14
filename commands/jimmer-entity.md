@@ -37,17 +37,9 @@ Field order: @Id → primary fields → secondary → audit → associations las
 
 ## Step 4: Update existing entities
 
-For every association defined on the new entity, check whether the other side needs a reverse association added to an existing entity:
+For every association on the new entity, open the existing entity file and add the reverse side. Association syntax and `mappedBy` rules are in `instructions/jimmer-entity-design.md` → Associations section.
 
-| New entity has | Existing entity gets |
-|---|---|
-| `@ManyToOne B` | `@OneToMany(mappedBy = "...") List<A>` on B |
-| `@OneToOne B` | `@OneToOne(mappedBy = "...") A` on B |
-| `@ManyToMany` (owning side) | `@ManyToMany(mappedBy = "...") List<A>` on B |
-
-Add the reverse side only if it makes sense for the domain — ask the user if unclear. Open the existing entity file and add the property.
-
-## Step 6: Generate the repository
+## Step 5: Generate the repository
 
 Output this, replacing only the entity name:
 
@@ -58,7 +50,7 @@ public interface ArticleRepository extends JRepository<Article, UUID> {
 
 The body is empty. The only reason to add a method is if the current task explicitly requires a query that JRepository built-ins cannot handle and that method is called in code written right now. If that condition is not met — the body stays empty.
 
-## Step 7: Compile
+## Step 6: Compile
 
 Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
 - output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
