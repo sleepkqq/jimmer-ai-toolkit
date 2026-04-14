@@ -4,23 +4,23 @@ description: "Design a new Jimmer entity with repository"
 
 # Entity Designer — STRICT WORKFLOW
 
-## Step 1: Gather requirements
+## Step 1: Scan existing project
 
-If the user's request is missing any of the following — ask before doing anything else:
+Collect the following in one pass before asking anything:
+
+1. **Build tool** — run `ls gradlew mvnw 2>/dev/null` in the project root. Note the result for Step 5.
+2. **Base entities** — search for `@MappedSuperclass`. Note their names and what fields they provide.
+3. **Package structure and code style** — read several existing entities and repositories to match naming, imports, annotation style exactly.
+
+## Step 2: Gather requirements
+
+Using what was found in Step 1 as context, ask the user about anything still unclear:
 - Entity name and purpose
 - Fields with names and types
 - Associations to other entities
 - Natural business key?
 
-Do not proceed to Step 2 until these are clear.
-
-## Step 2: Scan existing project
-
-Collect the following in one pass:
-
-1. **Build tool** — run `ls gradlew mvnw 2>/dev/null` in the project root. Note the result for Step 5.
-2. **Base entities** — search for `@MappedSuperclass`. Note their names and what fields they provide.
-3. **Package structure and code style** — read several existing entities and repositories to match naming, imports, annotations style exactly.
+If the project's existing entities make some answers obvious — don't ask, infer. Only ask what cannot be determined from the project.
 
 ## Step 3: Design the entity
 
@@ -33,7 +33,7 @@ Field order: @Id → primary fields → secondary → audit → associations las
 - `@OnDissociate(DissociateAction.DELETE)` on owned children's FK
 
 **Base entity inheritance:**
-- `@MappedSuperclass` found in Step 2 → use the appropriate one
+- `@MappedSuperclass` found in Step 1 → use the appropriate one
 - None found → ask the user if they want one, suggest: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
 
 ## Step 4: Generate the repository
@@ -51,7 +51,7 @@ Other repositories in the project having custom methods is not a reason to add m
 
 ## Step 5: Compile
 
-Use the build tool detected in Step 2:
+Use the build tool detected in Step 1:
 - `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
 - `mvnw` → `./mvnw compile`
 - neither → `gradle compileJava` / `mvn compile`
