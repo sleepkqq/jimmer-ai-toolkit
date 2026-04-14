@@ -138,12 +138,12 @@ Use when `select()` contains values that cannot be expressed as entity propertie
 
 Jimmer also has `Tuple2<A, B>`, `Tuple3<A, B, C>`, etc. — they work but give only positional access (`get_1()`, `get_2()`). Always use `@TypedTuple` instead — it produces named fields, is far more readable, and is the correct approach for any multi-value select.
 
-`@TypedTuple` is a plain Java **class** — not an interface, not a record. Fields are `private final`, set via constructor:
+`@TypedTuple` is always a plain Java **class** with `private final` fields and a constructor. It is never an interface and never a record — no exceptions.
 
 ```java
 @TypedTuple
 public class ArticleWithCount {
-    private final ArticleListView article;  // always a View DTO, never a raw entity interface
+    private final ArticleListView article;
     private final Long commentCount;
 
     public ArticleWithCount(ArticleListView article, Long commentCount) {
@@ -154,22 +154,21 @@ public class ArticleWithCount {
 }
 ```
 
-The field type must match exactly what `select()` fetches. `t.fetch(ArticleListView.class)` returns `ArticleListView` — so the field is `ArticleListView`, not `Article`. Using a raw entity interface here is wrong.
+**Field type must match exactly what `select()` fetches:**
+
+- View DTO exists for the entity → use `t.fetch(ArticleListView.class)` in select, field type is `ArticleListView`
+- No View DTO exists → use `t` directly in select, field type is the entity interface `Article`
 
 ```java
-var t = ARTICLE_TABLE;
-var c = COMMENT_TABLE;
+// with View
+.select(ArticleWithCountMapper
+    .article(t.fetch(ArticleListView.class))
+    .commentCount(commentCount))
 
-var commentCount = sql().createSubQuery(c)
-    .where(c.articleId().eq(t.id()))
-    .select(c.count());
-
-sql().createQuery(t)
-    .orderBy(commentCount.desc())
-    .select(ArticleWithCountMapper
-        .article(t.fetch(ArticleListView.class))
-        .commentCount(commentCount))
-    .fetchPage(page, size);
+// without View — no .fetch(), pass t directly
+.select(ArticleWithCountMapper
+    .article(t)
+    .commentCount(commentCount))
 ```
 
 ## Window Functions (createBaseQuery)

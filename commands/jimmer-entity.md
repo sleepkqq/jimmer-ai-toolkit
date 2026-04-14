@@ -35,7 +35,19 @@ Field order: @Id → primary fields → secondary → audit → associations las
 - `@MappedSuperclass` found in Step 1 → ask the user whether this entity needs audit/base fields. If yes — extend the base entity. If no — leave extends out. `@Entity` is always present regardless.
 - None found → ask the user if they want a base entity and suggest two patterns: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
 
-## Step 4: Generate the repository
+## Step 4: Update existing entities
+
+For every association defined on the new entity, check whether the other side needs a reverse association added to an existing entity:
+
+| New entity has | Existing entity gets |
+|---|---|
+| `@ManyToOne B` | `@OneToMany(mappedBy = "...") List<A>` on B |
+| `@OneToOne B` | `@OneToOne(mappedBy = "...") A` on B |
+| `@ManyToMany` (owning side) | `@ManyToMany(mappedBy = "...") List<A>` on B |
+
+Add the reverse side only if it makes sense for the domain — ask the user if unclear. Open the existing entity file and add the property.
+
+## Step 6: Generate the repository
 
 Output this, replacing only the entity name:
 
@@ -46,7 +58,7 @@ public interface ArticleRepository extends JRepository<Article, UUID> {
 
 The body is empty. The only reason to add a method is if the current task explicitly requires a query that JRepository built-ins cannot handle and that method is called in code written right now. If that condition is not met — the body stays empty.
 
-## Step 5: Compile
+## Step 7: Compile
 
 Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
 - output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
@@ -59,9 +71,10 @@ Fix errors. Done.
 
 ## Output
 
-1. Entity interface
-2. Repository interface
-3. Warnings if any
+1. New entity interface
+2. Updated existing entities (reverse associations)
+3. Repository interface
+4. Warnings if any
 
 For .dto files use `/jimmer-dto`. For migrations use `/jimmer-migration`.
 
