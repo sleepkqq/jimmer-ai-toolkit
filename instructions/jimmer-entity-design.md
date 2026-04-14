@@ -179,7 +179,9 @@ public interface Comment {
 
 ## DraftInterceptor
 
-Each `@MappedSuperclass` with auto-managed fields needs its own interceptor. Both fire for Model entities (Jimmer walks type hierarchy).
+Each `@MappedSuperclass` with auto-managed fields needs its own interceptor. Jimmer walks the type hierarchy, so each level fires separately.
+
+Example for a two-level hierarchy (`Auditable` ← `Model`):
 
 ```java
 @Component
@@ -196,13 +198,21 @@ public class AuditableDraftInterceptor implements DraftInterceptor<Auditable, Au
 public class ModelDraftInterceptor implements DraftInterceptor<Model, ModelDraft> {
     @Override
     public void beforeSave(@NotNull ModelDraft draft, @Nullable Model original) {
-        draft.setUpdatedAt(Instant.now());
-        if (original == null && !ImmutableObjects.isLoaded(draft, ModelProps.VERSION)) {
-            draft.setVersion(0);
+        var now = Instant.now();
+        if (original == null) {
+            if (!ImmutableObjects.isLoaded(draft, ModelProps.CREATED_AT)) {
+                draft.setCreatedAt(now);
+            }
+            if (!ImmutableObjects.isLoaded(draft, ModelProps.VERSION)) {
+                draft.setVersion(0);
+            }
         }
+        draft.setUpdatedAt(now);
     }
 }
 ```
+
+Adapt interceptor types and field names to the project's actual `@MappedSuperclass` interfaces.
 
 **Placement:** model module. Causes extra SELECT per save (for `original`).
 
@@ -230,7 +240,7 @@ Article updated = Immutables.createArticle(existing, draft -> {
 
 ## Checklist
 
-1. Update tracking? → `Model`. Only creation time? → `Auditable`. Reference data? → plain `@Entity`
+1. Needs audit fields? → extend the project's `@MappedSuperclass` base entity. None exists? → plain `@Entity`
 2. Natural key? → `@Key` + `@KeyUniqueConstraint`
 3. Owns children? → `@OnDissociate(DELETE)` on child's FK
 4. `@OneToOne` child? → don't put `@Key` on it

@@ -10,12 +10,16 @@ Ask the user if unclear:
 - Entity name and purpose
 - Fields with types
 - Associations
-- Whether it needs Model (updatedAt + @Version) or Auditable (createdAt only)
 - Natural business key?
 
 ## Step 2: Scan existing project
 
-Read existing entities, repositories, package structure. Match code style exactly.
+Search the project for interfaces annotated with `@MappedSuperclass` — these are the project's base entities. Note their names, fields, and what they provide (audit timestamps, @Version, etc.).
+
+- Found → use them when designing the new entity
+- Not found → ask the user whether they want a base entity, and suggest two common patterns: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
+
+Read existing entities, repositories, and package structure. Match code style exactly.
 
 ## Step 3: Design the entity
 
