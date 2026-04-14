@@ -134,19 +134,27 @@ sql().createQuery(t)
 
 ## @TypedTuple
 
-Use when `select()` contains values that cannot be expressed as entity properties and therefore cannot go into a .dto View — window functions (`row_number`, `rank`), correlated subqueries from other tables, arbitrary SQL expressions. Plain Java class, not a .dto View.
+Use when `select()` contains values that cannot be expressed as entity properties and therefore cannot go into a .dto View — window functions (`row_number`, `rank`), correlated subqueries from other tables, arbitrary SQL expressions.
 
 Jimmer also has `Tuple2<A, B>`, `Tuple3<A, B, C>`, etc. — they work but give only positional access (`get_1()`, `get_2()`). Always use `@TypedTuple` instead — it produces named fields, is far more readable, and is the correct approach for any multi-value select.
 
+`@TypedTuple` is a plain Java **class** — not an interface, not a record. Fields are `private final`, set via constructor:
 
 ```java
 @TypedTuple
 public class ArticleWithCount {
-    private final ArticleListView article;
+    private final ArticleListView article;  // always a View DTO, never a raw entity interface
     private final Long commentCount;
-    // constructor + getters
+
+    public ArticleWithCount(ArticleListView article, Long commentCount) {
+        this.article = article;
+        this.commentCount = commentCount;
+    }
+    // getters
 }
 ```
+
+The field type must match exactly what `select()` fetches. `t.fetch(ArticleListView.class)` returns `ArticleListView` — so the field is `ArticleListView`, not `Article`. Using a raw entity interface here is wrong.
 
 ```java
 var t = ARTICLE_TABLE;
