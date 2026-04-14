@@ -18,31 +18,31 @@ Spring Boot → `ArticleController`. Quarkus → `ArticleResource`.
 
 ## JRepository API
 
-Extends `JRepository<Entity, UUID>`. Built-ins — don't reimplement:
-
-```java
-// Read
-repository.findNullable(id);                                       // Entity or null
-repository.findNullable(id, ARTICLE_FETCHER.title().author());     // with Fetcher
-repository.viewer(ArticleDetailView.class).findNullable(id);       // as View
-repository.viewer(ArticleListView.class).findAll(page, size);      // paged View list
-
-// Save
-repository.save(entity, SaveMode.INSERT_ONLY);                     // returns Entity
-repository.saveCommand(input)                                      // returns View
-    .setMode(SaveMode.INSERT_ONLY)
-    .execute(ArticleDetailView.class)
-    .getModifiedView();
-
-// Delete
-repository.deleteById(id);
-```
-
-**Generate ONLY methods the user actually asked for.** Don't add findBy* for every field — add them when business logic requires. Repository should be minimal:
+Every repository starts empty:
 
 ```java
 public interface ArticleRepository extends JRepository<Article, UUID> {
-    // Custom query — ONLY when built-ins don't cover the need
+}
+```
+
+`JRepository` already provides — never reimplement these:
+
+```java
+repository.findNullable(id);
+repository.findNullable(id, ARTICLE_FETCHER.title().author());
+repository.viewer(ArticleDetailView.class).findNullable(id);
+repository.viewer(ArticleListView.class).findAll(page, size);
+repository.save(entity, SaveMode.INSERT_ONLY);
+repository.saveCommand(input).setMode(SaveMode.INSERT_ONLY).execute(ArticleDetailView.class).getModifiedView();
+repository.deleteById(id);
+```
+
+Custom methods are added only when the user explicitly requests a specific query that the built-ins cannot handle. `findBy*` methods are never generated speculatively — if the business logic doesn't require a custom query right now, the repository stays empty.
+
+When a custom method is needed, use a `default` method with `sql()`:
+
+```java
+public interface ArticleRepository extends JRepository<Article, UUID> {
     default <V extends View<Article>> Page<V> search(
         @Nullable String titleQuery, @Nullable UUID categoryId,
         int page, int size, Class<V> viewType

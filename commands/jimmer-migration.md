@@ -26,10 +26,10 @@ Add the new file entry to `changeLog.yaml`.
 
 ## Step 5: Compile
 
-Check the project root:
-- `./gradlew` exists → `./gradlew compileJava` / `compileKotlin`
-- `./mvnw` exists → `./mvnw compile`
-- neither → `gradle` / `mvn`
+Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- `mvnw` → `./mvnw compile`
+- neither → `gradle compileJava` / `mvn compile`
 
 Fix errors. Done.
 

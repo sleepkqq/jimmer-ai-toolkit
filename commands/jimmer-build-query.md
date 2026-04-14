@@ -10,11 +10,13 @@ What data? What filters? What result type? Pagination?
 
 ## Step 2: Choose approach
 
+The approach is determined solely by what the query needs to return. Scan the project only for package structure and naming conventions — never change the technical approach because a pattern isn't used elsewhere in the project yet.
+
 | Situation | Approach |
 |---|---|
 | Simple query with scalar / FK filters | `createQuery` + `TABLE` |
 | Filter on @OneToMany / @ManyToMany collection | `createQuery` + `TABLE_EX` |
-| Entity projection + computed value (count, avg) | `@TypedTuple` + `createQuery` |
+| select() contains values that can't be entity properties — window functions, correlated subqueries from other tables, arbitrary SQL expressions | `@TypedTuple` + `createQuery` |
 | Window functions (row_number, rank) | `createBaseQuery` + `asBaseTable` |
 | Bulk update / delete | `createUpdate` / `createDelete` |
 
@@ -25,6 +27,13 @@ What data? What filters? What result type? Pagination?
 `.where()` → `.groupBy()` → `.orderBy()` → `.select()` — select is always last.
 
 ### Tables
+
+If a TABLE constant is used more than once in a method, assign it to a local variable first:
+
+```java
+var t = ARTICLE_TABLE;   // used multiple times below — extract to variable
+var c = COMMENT_TABLE;
+```
 
 Use `TABLE` by default. Association navigation on `@ManyToOne` / scalar FKs is implicit — Jimmer auto-joins:
 
@@ -78,10 +87,10 @@ One method per request, matching exactly what the user described.
 
 ## Step 4: Compile
 
-Check the project root:
-- `./gradlew` exists → `./gradlew compileJava` / `compileKotlin`
-- `./mvnw` exists → `./mvnw compile`
-- neither → `gradle` / `mvn`
+Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- `mvnw` → `./mvnw compile`
+- neither → `gradle compileJava` / `mvn compile`
 
 Fix errors. Done.
 
@@ -121,9 +130,9 @@ sql().createQuery(t)
     .fetchPage(page, size);
 ```
 
-## @TypedTuple — Entity + Computed Values
+## @TypedTuple
 
-For queries returning a View + computed value. Plain Java class, not a .dto View.
+Use when `select()` contains values that cannot be expressed as entity properties and therefore cannot go into a .dto View — window functions (`row_number`, `rank`), correlated subqueries from other tables, arbitrary SQL expressions. Plain Java class, not a .dto View.
 
 ```java
 @TypedTuple
@@ -155,6 +164,8 @@ sql().createQuery(t)
 `addSelect()` order → `get_1()`, `get_2()` indices.
 
 ```java
+var t = ARTICLE_TABLE;
+
 var base = sql().createBaseQuery(t)
     .where(t.status().eq(Status.ACTIVE))
     .addSelect(t)
@@ -188,12 +199,14 @@ Always include type + SQL string. Placeholders: `%e` — column/expression, `%v`
 
 ```java
 // Aggregation with groupBy
+var t = ARTICLE_TABLE;
 sql().createQuery(t)
     .groupBy(t.category().id())
     .select(t.category().id(), t.count())
     .execute();
 
 // Bulk update
+var t = ARTICLE_TABLE;
 sql().createUpdate(t)
     .where(t.status().eq(Status.DRAFT))
     .set(t.status(), Status.ARCHIVED)

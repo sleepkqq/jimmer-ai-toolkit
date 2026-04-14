@@ -24,10 +24,10 @@ Use the quick-fix table first. If not covered, consult the error catalog below.
 
 ## Step 4: Fix and compile
 
-Apply the fix. Check the project root:
-- `./gradlew` exists → `./gradlew compileJava` / `compileKotlin`
-- `./mvnw` exists → `./mvnw compile`
-- neither → `gradle` / `mvn`
+Apply the fix. Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- `mvnw` → `./mvnw compile`
+- neither → `gradle compileJava` / `mvn compile`
 
 ---
 
