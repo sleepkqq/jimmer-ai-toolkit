@@ -6,6 +6,8 @@ description: "Generate .dto file (Views and Inputs) for an existing Jimmer entit
 
 ## Step 1: Read the entity
 
+Run `ls gradlew mvnw 2>/dev/null` in the project root and note the result for the compile step.
+
 Read the entity interface. Note fields, types, associations, nullability, @Version.
 
 ## Step 2: Determine which DTOs to generate
@@ -54,7 +56,7 @@ ArticleView {
 
 ## Step 4: Compile
 
-Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+Use the build tool detected in Step 1:
 - `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
 - `mvnw` → `./mvnw compile`
 - neither → `gradle compileJava` / `mvn compile`

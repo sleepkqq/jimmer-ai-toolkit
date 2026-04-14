@@ -6,20 +6,21 @@ description: "Design a new Jimmer entity with repository"
 
 ## Step 1: Gather requirements
 
-Ask the user if unclear:
+If the user's request is missing any of the following — ask before doing anything else:
 - Entity name and purpose
-- Fields with types
-- Associations
+- Fields with names and types
+- Associations to other entities
 - Natural business key?
+
+Do not proceed to Step 2 until these are clear.
 
 ## Step 2: Scan existing project
 
-Search the project for interfaces annotated with `@MappedSuperclass` — these are the project's base entities. Note their names, fields, and what they provide (audit timestamps, @Version, etc.).
+Collect the following in one pass:
 
-- Found → use them when designing the new entity
-- Not found → ask the user whether they want a base entity, and suggest two common patterns: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
-
-Read existing entities, repositories, and package structure. Match code style exactly.
+1. **Build tool** — run `ls gradlew mvnw 2>/dev/null` in the project root. Note the result for Step 5.
+2. **Base entities** — search for `@MappedSuperclass`. Note their names and what fields they provide.
+3. **Package structure and code style** — read several existing entities and repositories to match naming, imports, annotations style exactly.
 
 ## Step 3: Design the entity
 
@@ -31,9 +32,13 @@ Field order: @Id → primary fields → secondary → audit → associations las
 - `@Key` + `@KeyUniqueConstraint` for natural keys
 - `@OnDissociate(DissociateAction.DELETE)` on owned children's FK
 
+**Base entity inheritance:**
+- `@MappedSuperclass` found in Step 2 → use the appropriate one
+- None found → ask the user if they want one, suggest: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
+
 ## Step 4: Generate the repository
 
-Generate an empty interface extending JRepository:
+Always generate an empty interface:
 
 ```java
 public interface ArticleRepository extends JRepository<Article, UUID> {
@@ -42,11 +47,11 @@ public interface ArticleRepository extends JRepository<Article, UUID> {
 
 JRepository already provides: `findNullable`, `findById`, `save`, `deleteById`, `findAll`, `viewer()`, `saveCommand()`.
 
-Add custom methods only when the user explicitly asked for a specific query. For queries, use `/jimmer-build-query`.
+Other repositories in the project having custom methods is not a reason to add methods here. Add custom methods only when the user explicitly asked for a specific query on this entity. For queries use `/jimmer-build-query`.
 
 ## Step 5: Compile
 
-Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+Use the build tool detected in Step 2:
 - `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
 - `mvnw` → `./mvnw compile`
 - neither → `gradle compileJava` / `mvn compile`

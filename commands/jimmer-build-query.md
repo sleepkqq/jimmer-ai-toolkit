@@ -10,7 +10,7 @@ What data? What filters? What result type? Pagination?
 
 ## Step 2: Choose approach
 
-The approach is determined solely by what the query needs to return. Scan the project only for package structure and naming conventions — never change the technical approach because a pattern isn't used elsewhere in the project yet.
+The approach is determined solely by what the query needs to return. Scan the project for package structure and naming conventions — run `ls gradlew mvnw 2>/dev/null` in the project root and note the result for the compile step. Never change the technical approach because a pattern isn't used elsewhere in the project yet.
 
 | Situation | Approach |
 |---|---|
@@ -87,7 +87,7 @@ One method per request, matching exactly what the user described.
 
 ## Step 4: Compile
 
-Run `ls gradlew mvnw 2>/dev/null` in the project root and use the result:
+Use the build tool detected in Step 2:
 - `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
 - `mvnw` → `./mvnw compile`
 - neither → `gradle compileJava` / `mvn compile`
