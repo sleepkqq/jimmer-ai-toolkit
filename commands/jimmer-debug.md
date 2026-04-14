@@ -6,8 +6,6 @@ description: "Diagnose Jimmer ORM errors — NeitherIdNorKey, CannotDissociateTa
 
 ## Step 1: Collect information
 
-Run `ls gradlew mvnw 2>/dev/null` in the project root and note the result for the compile step.
-
 Ask the user for:
 - Exception class name and message
 - The entity being saved or queried
@@ -26,10 +24,10 @@ Use the quick-fix table first. If not covered, consult the error catalog below.
 
 ## Step 4: Fix and compile
 
-Apply the fix. Use the build tool detected in Step 1:
-- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
-- `mvnw` → `./mvnw compile`
-- neither → `gradle compileJava` / `mvn compile`
+Apply the fix. Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
+- output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- output contains `mvnw` → `./mvnw compile`
+- output is empty → check for `pom.xml` → `mvn compile`, or `build.gradle` → `gradle compileJava` / `gradle compileKotlin`
 
 ---
 

@@ -6,7 +6,6 @@ description: "Generate a database migration (Liquibase YAML or Flyway SQL) for J
 
 ## Step 1: Scan the project
 
-- Run `ls gradlew mvnw 2>/dev/null` in the project root and note the result for the compile step
 - Read `application.yml` to determine the migration tool (Liquibase or Flyway)
 - Find existing migration files — note the naming convention and directory
 - Determine the next version/filename from existing files
@@ -27,10 +26,10 @@ Add the new file entry to `changeLog.yaml`.
 
 ## Step 5: Compile
 
-Use the build tool detected in Step 1:
-- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
-- `mvnw` → `./mvnw compile`
-- neither → `gradle compileJava` / `mvn compile`
+Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
+- output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- output contains `mvnw` → `./mvnw compile`
+- output is empty → check for `pom.xml` → `mvn compile`, or `build.gradle` → `gradle compileJava` / `gradle compileKotlin`
 
 Fix errors. Done.
 

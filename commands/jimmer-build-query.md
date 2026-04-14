@@ -10,7 +10,7 @@ What data? What filters? What result type? Pagination?
 
 ## Step 2: Choose approach
 
-The approach is determined solely by what the query needs to return. Scan the project for package structure and naming conventions — run `ls gradlew mvnw 2>/dev/null` in the project root and note the result for the compile step. Never change the technical approach because a pattern isn't used elsewhere in the project yet.
+The approach is determined solely by what the query needs to return. Scan the project for package structure and naming conventions only. Never change the technical approach because a pattern isn't used elsewhere in the project yet.
 
 | Situation | Approach |
 |---|---|
@@ -87,10 +87,10 @@ One method per request, matching exactly what the user described.
 
 ## Step 4: Compile
 
-Use the build tool detected in Step 2:
-- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
-- `mvnw` → `./mvnw compile`
-- neither → `gradle compileJava` / `mvn compile`
+Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
+- output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- output contains `mvnw` → `./mvnw compile`
+- output is empty → check for `pom.xml` → `mvn compile`, or `build.gradle` → `gradle compileJava` / `gradle compileKotlin`
 
 Fix errors. Done.
 

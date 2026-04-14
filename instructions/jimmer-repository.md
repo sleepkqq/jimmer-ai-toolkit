@@ -1,8 +1,8 @@
 # Jimmer Repository Patterns
 
-## Adaptation Rule
+## Repository Size Rule
 
-**Adapt to the project.** Scan existing code, match style. Suggest alternatives only when asked.
+A custom method may be added to a repository **only if it is directly called by code being written in the current task.** If no code in the current task calls it — it does not get added. Existing repositories in the project having certain methods is not a reason to add those methods to a new repository.
 
 ---
 
@@ -37,7 +37,7 @@ repository.saveCommand(input).setMode(SaveMode.INSERT_ONLY).execute(ArticleDetai
 repository.deleteById(id);
 ```
 
-Custom methods are added only when the user explicitly requests a specific query that the built-ins cannot handle. `findBy*` methods are never generated speculatively — if the business logic doesn't require a custom query right now, the repository stays empty.
+The repository stays empty until a method is concretely needed by code in the current task. `findBy*` and any other speculative methods are never added.
 
 When a custom method is needed, use a `default` method with `sql()`:
 

@@ -8,9 +8,8 @@ description: "Design a new Jimmer entity with repository"
 
 Collect the following in one pass before asking anything:
 
-1. **Build tool** — run `ls gradlew mvnw 2>/dev/null` in the project root. Note the result for Step 5.
-2. **Base entities** — search for `@MappedSuperclass`. Note their names and what fields they provide.
-3. **Package structure and code style** — read several existing entities and repositories to match naming, imports, annotation style exactly.
+1. **Base entities** — search for `@MappedSuperclass`. Note their names and what fields they provide.
+2. **Package structure and code style** — read several existing entities and repositories for naming, imports, annotation style. Read repositories for style only — what methods other repositories have is irrelevant to this task.
 
 ## Step 2: Gather requirements
 
@@ -47,14 +46,14 @@ public interface ArticleRepository extends JRepository<Article, UUID> {
 
 JRepository already provides: `findNullable`, `findById`, `save`, `deleteById`, `findAll`, `viewer()`, `saveCommand()`.
 
-Other repositories in the project having custom methods is not a reason to add methods here. Add custom methods only when the user explicitly asked for a specific query on this entity. For queries use `/jimmer-build-query`.
+The repository is always empty. A method may only be added if it is directly called by code being written in this same task. Nothing else qualifies — not patterns seen in other repositories, not methods other repositories in the project already have, not anticipated future needs.
 
 ## Step 5: Compile
 
-Use the build tool detected in Step 1:
-- `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
-- `mvnw` → `./mvnw compile`
-- neither → `gradle compileJava` / `mvn compile`
+Execute `ls gradlew mvnw 2>/dev/null` as a tool call and wait for the output. The build command is chosen strictly from that output — do not assume a wrapper exists before seeing the result:
+- output contains `gradlew` → `./gradlew compileJava` / `./gradlew compileKotlin`
+- output contains `mvnw` → `./mvnw compile`
+- output is empty → check for `pom.xml` → `mvn compile`, or `build.gradle` → `gradle compileJava` / `gradle compileKotlin`
 
 Fix errors. Done.
 
