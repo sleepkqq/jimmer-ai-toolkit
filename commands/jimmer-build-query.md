@@ -1,203 +1,206 @@
 ---
-description: "Build a complex Jimmer query with typed DSL — createQuery, subQuery, window functions, DTO language"
+description: "Build a Jimmer query — STRICT WORKFLOW"
 ---
 
-# Query Builder
+# Query Builder — STRICT WORKFLOW
 
-## Key Rules
+## Step 1: Understand what the user needs
 
-- **Method order:** `.where()` → `.groupBy()` → `.orderBy()` → `.select()` → `.fetchPage()`. **select() ALWAYS LAST**
-- **Tables:** `ARTICLE_TABLE` from `Tables` (never `ArticleTable.$`). For `@OneToMany`/`@ManyToMany` use `ARTICLE_TABLE_EX`
-- **Dynamic predicates:** `eqIf()`/`likeIf()`/`geIf()` — skip when null
-- **like()** adds `%` automatically — never add `%` manually. Case-insensitive: `ilike()`
-- **Joins are implicit** — Jimmer auto-JOINs on FK/association navigation
-- **Multi-column results** — use `@TypedTuple` Java class + generated Mapper. Computed values (COUNT, AVG) CANNOT go in .dto files — only via `@TypedTuple`
-- **Generate ONLY what was asked.** Don't add extra methods or conditions the user didn't request
-- **After generating code, compile the project** (`./mvnw compile` or `./gradlew build`). Fix errors before finishing
+What data? What filters? What result type? Pagination?
 
-## Operators
+## Step 2: Choose approach
 
-| Operator | Method | Dynamic (null-safe) |
-|---|---|---|
-| Equal | `.eq()` | `.eqIf()` |
-| Not equal | `.ne()` | `.neIf()` |
-| Greater/Less | `.gt()` / `.ge()` / `.lt()` / `.le()` | `+If` variants |
-| In / Not in | `.in(list)` / `.notIn(list)` | — |
-| Like | `.like()` | `.likeIf()` |
-| Null check | `.isNull()` / `.isNotNull()` | — |
+| Situation | Approach |
+|---|---|
+| Simple query with scalar / FK filters | `createQuery` + `TABLE` |
+| Filter on @OneToMany / @ManyToMany collection | `createQuery` + `TABLE_EX` |
+| Entity projection + computed value (count, avg) | `@TypedTuple` + `createQuery` |
+| Window functions (row_number, rank) | `createBaseQuery` + `asBaseTable` |
+| Bulk update / delete | `createUpdate` / `createDelete` |
 
----
+## Step 3: Write the query
 
-## createQuery
+### Method order
+
+`.where()` → `.groupBy()` → `.orderBy()` → `.select()` — select is always last.
+
+### Tables
+
+Use `TABLE` by default. Association navigation on `@ManyToOne` / scalar FKs is implicit — Jimmer auto-joins:
 
 ```java
 var t = ARTICLE_TABLE;
-sql.createQuery(t)
-    .where(t.status().eqIf(statusFilter))
-    .where(t.title().likeIf(titleFilter, LikeMode.ANYWHERE))
+sql().createQuery(t)
+    .where(t.category().name().eqIf(categoryName))  // implicit join on FK
+    .where(t.status().eqIf(status))
     .orderBy(t.createdAt().desc())
-    .select(t.fetch(viewType))
+    .select(t.fetch(ArticleListView.class))
     .fetchPage(page, size);
 ```
 
-## Subqueries
+`TABLE_EX` extends `TABLE` with the ability to join `@OneToMany` / `@ManyToMany` collections. Use it as the main table variable when you need to filter on a collection:
 
 ```java
-var t = ARTICLE_TABLE_EX;  // TableEx for @ManyToMany navigation
-sql.createQuery(t)
-    .where(t.id().in(
-        sql.createSubQuery(t)
-            .where(t.tags().id().in(tagIds))
-            .select(t.id())
-    ))
-    .select(t.fetch(viewType))
+var t = ARTICLE_TABLE_EX;
+sql().createQuery(t)
+    .where(t.tags().id().in(tagIds))
+    .where(t.status().eqIf(status))
+    .orderBy(t.createdAt().desc())
+    .select(t.fetch(ArticleListView.class))
     .fetchPage(page, size);
 ```
 
-## @TypedTuple — Multi-Column Results (entity + computed values)
+### Dynamic predicates
 
-When query returns entity + computed values (counts, ratings, rankings), **create a separate Java class with `@TypedTuple`** — Jimmer generates `*Mapper`.
+`eqIf()` / `likeIf()` / `geIf()` — condition is skipped when value is null.
 
-**This is NOT a .dto View.** It's a regular Java class. Computed values CANNOT be expressed in .dto.
+`like(value, mode)` — mode controls wildcard placement:
 
-**@TypedTuple fields should be high-level results** — a View (entity projection) + computed values. Do NOT list individual entity fields — use a View class for the entity part:
+| LikeMode | SQL pattern |
+|---|---|
+| `ANYWHERE` (default) | `%value%` |
+| `START` | `value%` |
+| `END` | `%value` |
+| `EXACT` | `value` |
+
+### Return type generic
+
+Add the View generic only when the method returns a View projection. Methods returning `long`, `int`, `void`, `boolean` have no generic:
 
 ```java
-// WRONG — listing entity fields manually
+Page<ArticleListView> findWithFilters(String title, Pageable p);  // View generic
+long countByStatus(Status status);                                 // no generic
+```
+
+### Generate only what was asked
+
+One method per request, matching exactly what the user described.
+
+## Step 4: Compile
+
+Check the project root:
+- `./gradlew` exists → `./gradlew compileJava` / `compileKotlin`
+- `./mvnw` exists → `./mvnw compile`
+- neither → `gradle` / `mvn`
+
+Fix errors. Done.
+
+---
+
+## Aggregate functions
+
+`count()` is called on the table (all rows) or on a specific field (with optional `distinct`):
+
+```java
+var t = BOOK_TABLE;
+sql().createQuery(t)
+    .select(
+        t.count(),                       // COUNT(*)
+        t.id().count(/* distinct */ true), // COUNT(DISTINCT id)
+        t.price().sum(),
+        t.price().min(),
+        t.price().max(),
+        t.price().avg()
+    )
+    .execute();
+```
+
+For a correlated subquery count (e.g. comments per article):
+
+```java
+var t = ARTICLE_TABLE;
+var c = COMMENT_TABLE;
+
+var commentCount = sql().createSubQuery(c)
+    .where(c.articleId().eq(t.id()))
+    .select(c.count());
+
+sql().createQuery(t)
+    .orderBy(commentCount.desc())
+    .select(t.fetch(ArticleListView.class), commentCount)
+    .fetchPage(page, size);
+```
+
+## @TypedTuple — Entity + Computed Values
+
+For queries returning a View + computed value. Plain Java class, not a .dto View.
+
+```java
 @TypedTuple
 public class ArticleWithCount {
-    private final UUID id;           // DON'T DO THIS
-    private final String title;      // DON'T DO THIS
-    private final String status;     // DON'T DO THIS
+    private final ArticleListView article;
     private final Long commentCount;
-}
-
-// CORRECT — View for entity, only computed fields added separately
-@TypedTuple
-public class ArticleWithCount {
-    private final ArticleListView article;   // View from .dto file
-    private final Long commentCount;         // computed via Expression
     // constructor + getters
 }
+```
 
-// Step 2: Jimmer generates RatedArticleMapper. Use in .select():
-var avgExpr = Expression.numeric().sql(Double.class,
-    "(SELECT AVG(r.rating) FROM review r WHERE r.article_id = %e)", t.id());
-var countExpr = Expression.numeric().sql(Long.class,
-    "(SELECT COUNT(*) FROM comment c WHERE c.article_id = %e)", t.id());
+```java
+var t = ARTICLE_TABLE;
+var c = COMMENT_TABLE;
 
-sql.createQuery(t)
-    .orderBy(avgExpr.desc())
-    .select(RatedArticleMapper
+var commentCount = sql().createSubQuery(c)
+    .where(c.articleId().eq(t.id()))
+    .select(c.count());
+
+sql().createQuery(t)
+    .orderBy(commentCount.desc())
+    .select(ArticleWithCountMapper
         .article(t.fetch(ArticleListView.class))
-        .avgRating(avgExpr)
-        .commentCount(countExpr))
+        .commentCount(commentCount))
     .fetchPage(page, size);
 ```
 
 ## Window Functions (createBaseQuery)
 
-`createBaseQuery` + `addSelect` + `asBaseTable` for window functions and multi-column projections.
-
-**`addSelect()` order determines `get_1()`, `get_2()`, `get_3()` indices on the base table.**
+`addSelect()` order → `get_1()`, `get_2()` indices.
 
 ```java
-var t = ORDER_TABLE;
-
-// Step 1: base query with addSelect in order
-var base = sql.createBaseQuery(t)
+var base = sql().createBaseQuery(t)
     .where(t.status().eq(Status.ACTIVE))
-    .addSelect(t)                          // get_1() → entity
-    .addSelect(t.total())                  // get_2() → total
-    .addSelect(Expression.numeric().sql(   // get_3() → rank
-        Long.class,
-        "row_number() over(order by %e desc, %e asc)",
-        t.total(), t.id()))
+    .addSelect(t)
+    .addSelect(Expression.numeric().sql(Long.class,
+        "row_number() over(order by %e desc)", t.score()))
     .asBaseTable();
 
-// Step 2: query the base table, map with TypedTuple Mapper
-sql.createQuery(base)
-    .select(RankedOrderMapper
-        .order(base.get_1().fetch(OrderListView.class))
-        .total(base.get_2())
-        .position(base.get_3()))
+sql().createQuery(base)
+    .select(RankedMapper
+        .item(base.get_1().fetch(viewType))
+        .position(base.get_2()))
     .fetchPage(page, size);
 ```
 
 ## Expression.numeric().sql()
 
-**Always include `.sql()` with type + SQL string.** `Expression.numeric()` alone is incomplete.
+Always include type + SQL string. Placeholders: `%e` — column/expression, `%v` — bound value.
+
+## Operators
+
+| Operator | Method | Null-safe variant |
+|---|---|---|
+| Equal | `.eq()` | `.eqIf()` |
+| Not equal | `.ne()` | `.neIf()` |
+| Greater / Less | `.gt()` / `.ge()` / `.lt()` / `.le()` | `+If` variants |
+| In / Not in | `.in(list)` / `.notIn(list)` | — |
+| Like | `.like()` | `.likeIf()` |
+| Null check | `.isNull()` / `.isNotNull()` | — |
+
+## Aggregation / Bulk
 
 ```java
-// Scalar subquery as expression
-Expression.numeric().sql(Double.class,
-    "(SELECT AVG(r.rating) FROM review r WHERE r.recipe_id = %e)", t.id())
-
-// Window function
-Expression.numeric().sql(Long.class,
-    "row_number() over(order by %e desc)", t.score())
-```
-
-Placeholders: `%e` — column/expression, `%v` — bound parameter.
-
-## Aggregation / Bulk Operations
-
-```java
-// Aggregation
-sql.createQuery(t).groupBy(t.category().id())
-    .select(t.category().id(), t.count()).execute();
+// Aggregation with groupBy
+sql().createQuery(t)
+    .groupBy(t.category().id())
+    .select(t.category().id(), t.count())
+    .execute();
 
 // Bulk update
-sql.createUpdate(t).where(t.status().eq(Status.DRAFT))
-    .set(t.status(), Status.ARCHIVED).execute();
-
-// Bulk delete
-sql.createDelete(t).where(t.status().eq(Status.ARCHIVED)).execute();
+sql().createUpdate(t)
+    .where(t.status().eq(Status.DRAFT))
+    .set(t.status(), Status.ARCHIVED)
+    .execute();
 ```
 
-## Single Results
+## Single results
 
-`query.fetchOneOrNull()` (nullable), `query.fetchOne()` (throws), `query.fetchFirstOrNull()` (first of many).
+`fetchOneOrNull()` / `fetchOne()` / `fetchFirstOrNull()`
 
----
-
-# DTO Language Reference
-
-One `.dto` file per entity. **Use `#allScalars` then `-field` to exclude** — don't list every field manually. **ONLY use operators listed below** — do NOT invent SQL functions in .dto.
-
-```
-export com.example.entity.Article
-    -> package com.example.entity.dto
-
-ArticleListView {
-    #allScalars
-    -content                            // exclude heavy fields
-    category { id; name }
-}
-
-input ArticleCreateInput {
-    title
-    content
-    id(category) as categoryId     // @ManyToOne — single ID
-    id(tags) as tagIds             // @ManyToMany — List<ID> (always id(), NOT ids())
-}
-
-specification ArticleSpec {
-    like/i(title)
-    ge(createdAt)
-    eq(status)
-}
-```
-
-## Property Syntax
-
-```
-#allScalars              // all non-association properties
--content                 // exclude field
-title as articleTitle    // rename/alias
-category? { id; name }  // force nullable
-id(category) as catId   // @ManyToOne — single ID
-id(tags) as tagIds      // @ManyToMany — List<ID>
-flat(author) { name as authorName }  // flatten nested
-children* { #allScalars }            // recursive (tree)
-```

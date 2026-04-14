@@ -2,87 +2,61 @@
 description: "Generate .dto file (Views and Inputs) for an existing Jimmer entity"
 ---
 
-# DTO Generator
+# DTO Generator — STRICT WORKFLOW
 
-Generate `.dto` file for an existing entity. Scan the entity interface first to understand its fields and associations.
+## Step 1: Read the entity
 
-## Rules
+Read the entity interface. Note fields, types, associations, nullability, @Version.
 
-- **One `.dto` file per entity.** One export declaration per file
-- **Use `#allScalars` then `-field` to exclude** — don't list every field manually
-- **`id()` for associations:** `id(category) as categoryId` (@ManyToOne → single ID), `id(tags) as tagIds` (@ManyToMany → List<ID>)
-- **ONLY use .dto operators listed below.** Do NOT invent operators like `count()`, `avg()`, `sum()` — computed values go in `@TypedTuple` Java classes, not .dto files
-- **Generate only what the user asked for.** Don't create all possible View/Input combinations
+## Step 2: Determine which DTOs to generate
 
-## Process
+Read the user's request. Count the DTO names mentioned. Generate exactly that number, with exactly those names.
 
-1. **Read the entity interface** — understand fields, types, associations, @Version
-2. **Determine what DTOs are needed** from user request:
-   - `{Entity}View` — if only one view needed
-   - `{Entity}ListView` + `{Entity}DetailView` — if list and detail differ
-   - `input {Entity}CreateInput` — for creation (exclude id, audit fields)
-   - `input {Entity}UpdateInput` — for update (include id, version if @Version)
-3. **Write the .dto file** at `src/main/dto/{package}/{EntityName}.dto`
-4. **Compile the project** (`./mvnw compile` or `./gradlew build`). Fix errors before finishing
+Examples:
+- "a View" → one View
+- "a ListView" → one ListView
+- "CreateInput and UpdateInput" → two Inputs
+- "CRUD DTOs" → CreateInput + UpdateInput + one View
 
-## .dto Syntax
+## Step 3: Write the .dto file
+
+**File location:** `src/main/dto/{package path}/{EntityName}.dto`
+
+**Syntax reference:** `instructions/jimmer-dto-language.md`
+
+### Scalar fields
+
+Start with `#allScalars`. Use `-fieldName` to exclude what you don't need.
 
 ```
-export com.example.entity.Article
-    -> package com.example.entity.dto
-
-ArticleListView {
+ArticleView {
     #allScalars
-    -content                            // exclude heavy fields
-    -instructions
-    category { id; name }               // nested association
+    -content
+    -internalNotes
 }
+```
 
-ArticleDetailView {
+For `input` blocks where you include only a small explicit subset, list only those fields instead.
+
+### Nested associations
+
+Each field of a nested block on its own line:
+
+```
+ArticleView {
     #allScalars
-    category { id; name }
-    comments { id; content; createdAt }
-    tags { id; name }
-}
-
-input ArticleCreateInput {
-    title
-    content
-    id(category) as categoryId          // @ManyToOne — single ID
-    id(tags) as tagIds                  // @ManyToMany — List<ID>
-}
-
-input ArticleUpdateInput {
-    id
-    title
-    content
-    id(category) as categoryId
-    id(tags) as tagIds
-    version                             // required for @Version entities
-}
-
-specification ArticleSpec {
-    like/i(title)
-    ge(createdAt)
-    eq(status)
+    category {
+        id
+        name
+    }
 }
 ```
 
-## Property Operators (COMPLETE list — use ONLY these)
+## Step 4: Compile
 
-```
-#allScalars              // all non-association properties
--content                 // exclude field from #allScalars
-title as articleTitle    // rename/alias
-category? { id; name }  // force nullable
-id(category) as catId   // @ManyToOne FK — single ID
-id(tags) as tagIds      // @ManyToMany — List<ID> (NOT ids(), always id())
-flat(author) { name as authorName }  // flatten nested object
-children* { #allScalars }            // recursive (tree)
-```
+Check the project root:
+- `./gradlew` exists → `./gradlew compileJava` / `compileKotlin`
+- `./mvnw` exists → `./mvnw compile`
+- neither → `gradle` / `mvn`
 
-| Type | Keyword | Purpose |
-|---|---|---|
-| View | (none) | Read-only output projection |
-| Input | `input` | Write input (request body) |
-| Specification | `specification` | Dynamic WHERE builder |
+Fix errors. Done.

@@ -333,7 +333,7 @@ echo -e "${BOLD}============================================================${NC
 echo -e "${BOLD}Done!${NC}  ${GREEN}+$INSTALLED installed${NC}  ${YELLOW}~$UPDATED updated${NC}  ${DIM}-$SKIPPED skipped${NC}"
 echo ""
 echo -e "  Context: ${CYAN}$FILE_COUNT instruction files${NC} (~50KB always in context)"
-echo -e "  Skills:  ${CYAN}/jimmer-entity${NC}  ${CYAN}/jimmer-build-query${NC}  ${CYAN}/jimmer-migration${NC}  ${CYAN}/jimmer-debug${NC}"
+echo -e "  Skills:  ${CYAN}/jimmer-entity${NC}  ${CYAN}/jimmer-dto${NC}  ${CYAN}/jimmer-build-query${NC}  ${CYAN}/jimmer-migration${NC}  ${CYAN}/jimmer-debug${NC}"
 if [ "$INSTALL_MCP" = true ]; then
     echo -e "  MCP:     ${CYAN}jimmer_github_search${NC}  ${CYAN}jimmer_docs_search${NC}"
 fi
