@@ -10,7 +10,7 @@ What data? What filters? What result type? Pagination?
 
 ## Step 2: Choose approach
 
-The approach is determined solely by what the query needs to return. Scan the project for package structure and naming conventions only. Never change the technical approach because a pattern isn't used elsewhere in the project yet.
+The approach is determined solely by what the query needs to return. Scan the project for package structure and naming conventions only. If the correct approach for the query is `@TypedTuple` — use it even if there are no existing `@TypedTuple` examples in the project. Absence of a pattern in the project is never a reason to choose a different approach.
 
 | Situation | Approach |
 |---|---|
@@ -25,6 +25,8 @@ The approach is determined solely by what the query needs to return. Scan the pr
 ### Method order
 
 `.where()` → `.groupBy()` → `.orderBy()` → `.select()` — select is always last.
+
+`.as("name")` does not exist in Jimmer Java DSL — never use it inside `select()`.
 
 ### Tables
 
@@ -133,6 +135,9 @@ sql().createQuery(t)
 ## @TypedTuple
 
 Use when `select()` contains values that cannot be expressed as entity properties and therefore cannot go into a .dto View — window functions (`row_number`, `rank`), correlated subqueries from other tables, arbitrary SQL expressions. Plain Java class, not a .dto View.
+
+Jimmer also has `Tuple2<A, B>`, `Tuple3<A, B, C>`, etc. — they work but give only positional access (`get_1()`, `get_2()`). Always use `@TypedTuple` instead — it produces named fields, is far more readable, and is the correct approach for any multi-value select.
+
 
 ```java
 @TypedTuple

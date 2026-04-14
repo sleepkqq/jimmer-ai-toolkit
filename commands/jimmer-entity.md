@@ -32,21 +32,19 @@ Field order: @Id → primary fields → secondary → audit → associations las
 - `@OnDissociate(DissociateAction.DELETE)` on owned children's FK
 
 **Base entity inheritance:**
-- `@MappedSuperclass` found in Step 1 → use the appropriate one
-- None found → ask the user if they want one, suggest: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
+- `@MappedSuperclass` found in Step 1 → ask the user whether this entity needs audit/base fields. If yes — extend the base entity. If no — leave extends out. `@Entity` is always present regardless.
+- None found → ask the user if they want a base entity and suggest two patterns: `Auditable` (createdAt only) and `Model extends Auditable` (adds updatedAt + @Version)
 
 ## Step 4: Generate the repository
 
-Always generate an empty interface:
+Output this, replacing only the entity name:
 
 ```java
 public interface ArticleRepository extends JRepository<Article, UUID> {
 }
 ```
 
-JRepository already provides: `findNullable`, `findById`, `save`, `deleteById`, `findAll`, `viewer()`, `saveCommand()`.
-
-The repository is always empty. A method may only be added if it is directly called by code being written in this same task. Nothing else qualifies — not patterns seen in other repositories, not methods other repositories in the project already have, not anticipated future needs.
+The body is empty. The only reason to add a method is if the current task explicitly requires a query that JRepository built-ins cannot handle and that method is called in code written right now. If that condition is not met — the body stays empty.
 
 ## Step 5: Compile
 
