@@ -1,0 +1,76 @@
+---
+name: jimmer-migrations
+description: |
+  Database migration workflow for Jimmer entity changes with type mapping, FK/index rules, and annotation-to-constraint alignment.
+triggers:
+  - "Jimmer migration"
+  - "Liquibase"
+  - "Flyway"
+  - "@KeyUniqueConstraint"
+  - "@OnDissociate"
+jimmer:
+  toolkit: jimmer-ai-toolkit
+  kind: task
+---
+
+# Jimmer Migrations
+
+Use for Liquibase/Flyway migrations aligned with Jimmer entity changes.
+
+## Workflow
+
+1. Detect migration setup:
+
+```bash
+scripts/next-migration.sh /path/to/project
+```
+
+2. Read entity annotations and existing migrations.
+3. Follow existing migration format and naming exactly.
+4. Add Liquibase file to master changelog when project uses one.
+5. Compile:
+
+```bash
+scripts/compile.sh /path/to/project
+```
+
+## Type Mapping
+
+| Java/Kotlin | PostgreSQL | MySQL |
+|---|---|---|
+| `UUID` | `uuid` | `char(36)` |
+| `String` | `varchar(255)` | `varchar(255)` |
+| `Int` / `Integer` | `integer` | `int` |
+| `Long` | `bigint` | `bigint` |
+| `Boolean` | `boolean` | `tinyint(1)` |
+| `Instant` | `timestamptz` | `timestamp` |
+| `LocalDateTime` | `timestamp` | `timestamp` |
+| `LocalDate` | `date` | `date` |
+| `BigDecimal` | `numeric(19,4)` | `decimal(19,4)` |
+| Enum | `varchar(50)` | `varchar(50)` |
+| `@Serialized` | `jsonb` | `json` |
+
+## Annotation Alignment
+
+| Jimmer annotation | DB constraint |
+|---|---|
+| `@OnDissociate(DELETE)` | `ON DELETE CASCADE` |
+| `@OnDissociate(SET_NULL)` | `ON DELETE SET NULL` |
+| `@Key` | unique constraint on key columns |
+| `@KeyUniqueConstraint` | DB unique constraint required |
+| `@Version` | integer not null default 0 |
+| `@OneToOne @JoinColumn` | FK plus unique when truly one-to-one |
+
+## Index Rules
+
+- Index every FK column unless covered by stronger index.
+- `@ManyToOne` FK -> index.
+- inverse `@OneToMany` FK -> index on child table.
+- many-to-many join table -> indexes for both directions.
+- unique constraint for `@Key` usually replaces extra same-column index.
+
+## Safety
+
+- Do not drop/rename columns without explicit user confirmation.
+- Do not generate irreversible data migrations from guesses.
+- DB constraint must match Jimmer dissociation/key annotations.

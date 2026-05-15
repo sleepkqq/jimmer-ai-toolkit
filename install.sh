@@ -2,14 +2,11 @@
 set -euo pipefail
 
 TOOLKIT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TOOL="claude"
+TOOL="opencode"
 USE_SYMLINK=false
 INSTALL_MCP=false
-INSTALL_KOTLIN=false
-INSTALL_QUARKUS=false
 TARGET_PROJECT=""
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -31,23 +28,20 @@ print_usage() {
     echo ""
     echo -e "Usage: ${CYAN}./install.sh${NC} [OPTIONS] /path/to/your/project"
     echo ""
-    echo "Safe to run on existing projects — won't break existing configs."
+    echo "Installs Jimmer skills. Safe to run repeatedly."
     echo ""
     echo "Options:"
-    echo -e "  ${CYAN}--tool${NC} claude|qwen|gigacode       Target CLI tool (default: claude)"
-    echo -e "  ${CYAN}--kotlin${NC}                          Add Kotlin reference to context"
-    echo -e "  ${CYAN}--quarkus${NC}                         Add Quarkus reference to context"
-    echo -e "  ${CYAN}--symlink${NC}                         Use symlinks instead of copies"
-    echo -e "  ${CYAN}--mcp${NC}                             Install MCP server (Jimmer docs + GitHub issues)"
+    echo -e "  ${CYAN}--tool${NC} opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)"
+    echo -e "  ${CYAN}--symlink${NC}                                Use symlinks instead of copies"
+    echo -e "  ${CYAN}--mcp${NC}                                    Install MCP server config"
     echo ""
     echo "Examples:"
     echo -e "  ${DIM}./install.sh /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --kotlin /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --kotlin --quarkus --mcp /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh --mcp /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh --tool claude /path/to/project${NC}"
     echo -e "  ${DIM}./install.sh --tool gigacode /path/to/project${NC}"
 }
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --tool)
@@ -56,14 +50,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --symlink)
             USE_SYMLINK=true
-            shift
-            ;;
-        --kotlin)
-            INSTALL_KOTLIN=true
-            shift
-            ;;
-        --quarkus)
-            INSTALL_QUARKUS=true
             shift
             ;;
         --mcp)
@@ -91,104 +77,83 @@ if [ ! -d "$TARGET_PROJECT" ]; then
     exit 1
 fi
 
-if [[ "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" ]]; then
-    echo -e "${RED}Error:${NC} --tool must be 'claude', 'qwen', or 'gigacode'"
+if [[ "$TOOL" != "opencode" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" ]]; then
+    echo -e "${RED}Error:${NC} --tool must be 'opencode', 'claude', 'qwen', or 'gigacode'"
     exit 1
 fi
 
-# Tool-specific paths
 case "$TOOL" in
+    opencode)
+        CONFIG_DIR=".opencode"
+        ;;
     claude)
         CONFIG_DIR=".claude"
-        ENTRY_FILE="CLAUDE.md"
-        SKILLS_DIR="$CONFIG_DIR/commands"
         ;;
     qwen)
         CONFIG_DIR=".qwen"
-        ENTRY_FILE="QWEN.md"
-        SKILLS_DIR="$CONFIG_DIR/commands"
         ;;
     gigacode)
         CONFIG_DIR=".gigacode"
-        ENTRY_FILE="GIGACODE.md"
-        SKILLS_DIR="$CONFIG_DIR/commands"
         ;;
 esac
 
-# Create directories
-mkdir -p "$TARGET_PROJECT/$CONFIG_DIR"
+SKILLS_DIR="$CONFIG_DIR/skills"
 mkdir -p "$TARGET_PROJECT/$SKILLS_DIR"
 
-echo -e "\n${BOLD}Jimmer AI Toolkit${NC} ${DIM}→${NC} ${CYAN}$TOOL${NC} ${DIM}→${NC} $TARGET_PROJECT/$CONFIG_DIR/"
+echo -e "\n${BOLD}Jimmer AI Toolkit${NC} ${DIM}→${NC} ${CYAN}$TOOL${NC} ${DIM}→${NC} $TARGET_PROJECT/$SKILLS_DIR/"
 
-# Counters
 INSTALLED=0
 SKIPPED=0
 UPDATED=0
 
-# Helper: copy or link, with conflict detection
-install_file() {
+install_path() {
     local src="$1"
     local dst="$2"
     local label="$3"
 
-    if [ -f "$dst" ]; then
+    if [ -e "$dst" ]; then
         if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
             log_skip "already linked: $label"
             SKIPPED=$((SKIPPED + 1))
             return
         fi
-        if cmp -s "$src" "$dst" 2>/dev/null; then
+        if [ -d "$src" ] && [ -d "$dst" ] && diff -qr "$src" "$dst" >/dev/null 2>&1; then
             log_skip "identical: $label"
             SKIPPED=$((SKIPPED + 1))
             return
         fi
+        rm -rf "$dst"
         if [ "$USE_SYMLINK" = true ]; then
-            ln -sf "$src" "$dst"
+            ln -s "$src" "$dst"
             log_update "updated (symlink): $label"
         else
-            cp "$src" "$dst"
+            mkdir -p "$(dirname "$dst")"
+            cp -R "$src" "$dst"
             log_update "updated: $label"
         fi
         UPDATED=$((UPDATED + 1))
     else
         if [ "$USE_SYMLINK" = true ]; then
-            ln -sf "$src" "$dst"
+            ln -s "$src" "$dst"
             log_install "linked: $label"
         else
-            cp "$src" "$dst"
+            mkdir -p "$(dirname "$dst")"
+            cp -R "$src" "$dst"
             log_install "copied: $label"
         fi
         INSTALLED=$((INSTALLED + 1))
     fi
 }
 
-# Build list of optional files (not auto-imported unless flag is set)
-OPTIONAL_FILES=""
-[ "$INSTALL_KOTLIN" = false ] && OPTIONAL_FILES="$OPTIONAL_FILES jimmer-kotlin.md"
-[ "$INSTALL_QUARKUS" = false ] && OPTIONAL_FILES="$OPTIONAL_FILES jimmer-quarkus.md"
-
-# 1. Instruction files
-log_header "Instruction files"
-FILE_COUNT=0
-for file in "$TOOLKIT_DIR"/instructions/*.md; do
-    filename=$(basename "$file")
-    if echo "$OPTIONAL_FILES" | grep -qw "$filename"; then
-        install_file "$file" "$TARGET_PROJECT/$CONFIG_DIR/$filename" "${DIM}optional${NC} $filename"
-    else
-        install_file "$file" "$TARGET_PROJECT/$CONFIG_DIR/$filename" "$filename"
-        FILE_COUNT=$((FILE_COUNT + 1))
-    fi
+log_header "Skills"
+SKILL_COUNT=0
+for dir in "$TOOLKIT_DIR"/skills/*; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    install_path "$dir" "$TARGET_PROJECT/$SKILLS_DIR/$name" "$name"
+    SKILL_COUNT=$((SKILL_COUNT + 1))
 done
 
-# 2. Skills/commands
-log_header "Skills/Commands"
-for file in "$TOOLKIT_DIR"/commands/*.md; do
-    filename=$(basename "$file")
-    install_file "$file" "$TARGET_PROJECT/$SKILLS_DIR/$filename" "$filename"
-done
-
-# 3. MCP server
 if [ "$INSTALL_MCP" = true ]; then
     log_header "MCP Server"
 
@@ -209,8 +174,7 @@ if [ "$INSTALL_MCP" = true ]; then
       \"env\": { \"GITHUB_TOKEN\": \"\${GITHUB_TOKEN}\" }
     }"
 
-        if [ "$TOOL" = "claude" ]; then
-            # Claude Code: .mcp.json in project root
+        if [ "$TOOL" = "claude" ] || [ "$TOOL" = "opencode" ]; then
             MCP_FILE="$TARGET_PROJECT/.mcp.json"
             if [ -f "$MCP_FILE" ]; then
                 if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
@@ -238,7 +202,6 @@ MCPEOF
                 log_install "created .mcp.json"
             fi
         else
-            # Qwen/GigaCode: mcpServers in settings.json inside config dir
             MCP_FILE="$TARGET_PROJECT/$CONFIG_DIR/settings.json"
             if [ -f "$MCP_FILE" ]; then
                 if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
@@ -274,67 +237,14 @@ MCPEOF
     fi
 fi
 
-# 4. Entry file (CLAUDE.md / QWEN.md / GIGACODE.md)
-IMPORTS=""
-for file in "$TOOLKIT_DIR"/instructions/*.md; do
-    filename=$(basename "$file")
-    # Skip optional files from auto-import
-    if echo "$OPTIONAL_FILES" | grep -qw "$filename"; then
-        continue
-    fi
-    IMPORTS="${IMPORTS}@${CONFIG_DIR}/${filename}
-"
-done
-
-log_header "Entry file ($ENTRY_FILE)"
-ENTRY_PATH="$TARGET_PROJECT/$ENTRY_FILE"
-
-if [ -f "$ENTRY_PATH" ]; then
-    MISSING_IMPORTS=""
-    MISSING_COUNT=0
-    while IFS= read -r line; do
-        [ -z "$line" ] && continue
-        if ! grep -qF "$line" "$ENTRY_PATH" 2>/dev/null; then
-            MISSING_IMPORTS="${MISSING_IMPORTS}${line}
-"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-        fi
-    done <<< "$IMPORTS"
-
-    if [ "$MISSING_COUNT" -eq 0 ]; then
-        log_skip "all imports already present"
-    else
-        echo "" >> "$ENTRY_PATH"
-        echo "# Jimmer AI Toolkit" >> "$ENTRY_PATH"
-        while IFS= read -r line; do
-            [ -z "$line" ] && continue
-            echo "$line" >> "$ENTRY_PATH"
-        done <<< "$MISSING_IMPORTS"
-        log_update "appended $MISSING_COUNT import(s)"
-    fi
-else
-    {
-        echo "# Jimmer Project"
-        echo ""
-        while IFS= read -r line; do
-            [ -z "$line" ] && continue
-            echo "$line"
-        done <<< "$IMPORTS"
-        echo ""
-        echo "# Extended Jimmer knowledge available via commands:"
-        echo "# /jimmer-entity, /jimmer-dto, /jimmer-build-query, /jimmer-migration, /jimmer-debug"
-    } > "$ENTRY_PATH"
-    log_install "created $ENTRY_FILE"
-fi
-
-# Summary
 echo ""
 echo -e "${BOLD}============================================================${NC}"
 echo -e "${BOLD}Done!${NC}  ${GREEN}+$INSTALLED installed${NC}  ${YELLOW}~$UPDATED updated${NC}  ${DIM}-$SKIPPED skipped${NC}"
 echo ""
-echo -e "  Context: ${CYAN}$FILE_COUNT instruction files${NC} (~50KB always in context)"
-echo -e "  Skills:  ${CYAN}/jimmer-entity${NC}  ${CYAN}/jimmer-dto${NC}  ${CYAN}/jimmer-build-query${NC}  ${CYAN}/jimmer-migration${NC}  ${CYAN}/jimmer-debug${NC}"
+echo -e "  Skills:  ${CYAN}$SKILL_COUNT installed${NC} into ${CYAN}$SKILLS_DIR${NC}"
+echo -e "  Tasks:   ${CYAN}jimmer-entity${NC} ${CYAN}jimmer-dto${NC} ${CYAN}jimmer-query${NC} ${CYAN}jimmer-migrations${NC} ${CYAN}jimmer-debug${NC}"
 if [ "$INSTALL_MCP" = true ]; then
     echo -e "  MCP:     ${CYAN}jimmer_github_search${NC}  ${CYAN}jimmer_docs_search${NC}"
 fi
 echo ""
+echo -e "Ask your agent naturally. Skills load on demand from frontmatter triggers."

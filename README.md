@@ -1,100 +1,102 @@
 # Jimmer AI Toolkit
 
-A comprehensive set of instruction files, commands, and MCP tools that turn AI coding assistants (Claude Code, Qwen Code, GigaCode) into Jimmer ORM experts.
+Skills-native toolkit that helps AI coding agents work with Jimmer ORM without keeping large context files always loaded.
 
 ## What's Included
 
-### Instruction Files (`instructions/`)
-Core Jimmer knowledge — always loaded into AI context:
-- **Entity design** — interface-based entities, associations, annotations, @Key, @OnDissociate
-- **Save modes** — SaveMode, AssociatedSaveMode, save result handling
-- **Repository patterns** — KRepository/JRepository, saveCommand, anti-patterns
-- **Fetchers & Generated Code** — Fetcher API, View vs Fetcher decision, N+1 prevention, generated classes
-- **DTO language** — complete .dto syntax reference (all operators, specification QBE, enum mapping)
+### Skills (`skills/`)
 
-Optional (enabled via flags):
-- **Kotlin** — Kotlin-specific Jimmer patterns
-- **Quarkus** — Quarkus integration reference
+Task skills:
+- `jimmer-entity` — entity creation/change workflow with interface, association, key, base type, and repository rules
+- `jimmer-dto` — `.dto` workflow and syntax for Views, Inputs, unsafe Inputs, Specifications, aliases, and association projections
+- `jimmer-query` — typed query workflow for filters, pagination, `TABLE_EX`, aggregates, typed tuples, and bulk operations
+- `jimmer-migrations` — Liquibase/Flyway migrations aligned with Jimmer annotations and DB constraints
+- `jimmer-debug` — diagnosis workflow for save, dissociation, key, loading, optimistic lock, and query errors
 
-### Commands (`commands/`)
-Interactive workflows triggered by slash commands:
-- `/jimmer-entity` — design a new entity with repository
-- `/jimmer-dto` — generate .dto file (Views, Inputs, Specifications)
-- `/jimmer-build-query` — build typed queries, aggregates, window functions
-- `/jimmer-migration` — generate database migration (Liquibase/Flyway)
-- `/jimmer-debug` — diagnose Jimmer errors with full error catalog
+Reference skills:
+- `jimmer-repositories` — repository/service boundaries, built-ins, and `saveCommand` return patterns
+- `jimmer-fetchers` — Fetcher API, generated code, View-vs-Fetcher decisions, and N+1 batch loading
+- `jimmer-save-modes` — `SaveMode`, `AssociatedSaveMode`, key matching, child replacement, save result handling
+- `jimmer-kotlin` — Kotlin entity/query/save/KSP patterns
+- `jimmer-quarkus` — Quarkus dependencies, CDI/JAX-RS layers, config
+
+### Skill Scripts
+
+Scripts live inside the skills that use them:
+- `jimmer-entity/scripts/` — project scan + compile helpers
+- `jimmer-query/scripts/` — project scan + compile helpers
+- `jimmer-dto/scripts/` — compile helper
+- `jimmer-debug/scripts/` — compile helper
+- `jimmer-migrations/scripts/` — migration discovery + compile helpers
 
 ### MCP Server (`mcp/jimmer-docs-mcp/`)
+
 - `jimmer_docs_search` — search and fetch content from official Jimmer documentation
 - `jimmer_github_search` — search GitHub issues and discussions for edge cases
 
 ## Prerequisites
 
-- **Git** — target project must be a git repository
-- **Node.js 18+** — required only if using `--mcp` flag
-- **Claude Code**, **Qwen Code**, or **GigaCode**
+- Git — target project should be a git repository
+- Node.js 18+ — required only when using `--mcp`
+- Agent CLI with skills support: OpenCode by default, or Claude Code/Qwen Code/GigaCode-compatible layout
 
 ## Installation
 
 ```bash
-chmod +x install.sh                                     # grant execute permission (once)
-./install.sh /path/to/project                           # Java + Spring Boot (default)
-./install.sh --kotlin /path/to/project                  # add Kotlin reference
-./install.sh --quarkus /path/to/project                 # add Quarkus reference
-./install.sh --kotlin --quarkus /path/to/project        # both
-./install.sh --mcp /path/to/project                     # with MCP server
-./install.sh --tool qwen /path/to/project               # Qwen Code
-./install.sh --tool gigacode /path/to/project           # GigaCode
+chmod +x install.sh
+./install.sh /path/to/project
+./install.sh --mcp /path/to/project
+./install.sh --tool claude /path/to/project
+./install.sh --tool qwen /path/to/project
+./install.sh --tool gigacode /path/to/project
 ```
 
 ### Options
 
-```
+```text
 ./install.sh [OPTIONS] /path/to/project
 
-  --tool claude|qwen|gigacode       Target CLI tool (default: claude)
-  --kotlin                          Add Kotlin reference to context
-  --quarkus                         Add Quarkus reference to context
-  --symlink                         Use symlinks instead of copies
-  --mcp                             Install MCP server
+  --tool opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)
+  --symlink                                  Use symlinks instead of copies
+  --mcp                                      Install MCP server config
 ```
 
-Safe to re-run on existing projects: skips identical files, appends missing imports, never overwrites unrelated configs.
+## Installed Layout
 
-### MCP Setup
+Default OpenCode layout:
 
-Build the bundle once before installing:
-
-```bash
-cd mcp/jimmer-docs-mcp
-npm install
-npm run bundle
+```text
+/path/to/project/.opencode/skills/
+  jimmer-entity/SKILL.md
+  jimmer-dto/SKILL.md
+  jimmer-query/SKILL.md
+  jimmer-migrations/SKILL.md
+  jimmer-debug/SKILL.md
+  jimmer-repositories/SKILL.md
+  jimmer-fetchers/SKILL.md
+  jimmer-save-modes/SKILL.md
+  jimmer-kotlin/SKILL.md
+  jimmer-quarkus/SKILL.md
+  jimmer-entity/scripts/scan-project.sh
+  jimmer-query/scripts/scan-project.sh
+  jimmer-dto/scripts/compile.sh
+  jimmer-migrations/scripts/next-migration.sh
+  jimmer-debug/scripts/compile.sh
 ```
 
-Then install:
+No always-loaded context imports are appended to agent entry files. Agents discover and load skills by frontmatter descriptions and triggers.
 
-```bash
-./install.sh --mcp /path/to/project
-```
+## Usage
 
-For GitHub issue search, create a [personal access token](https://github.com/settings/tokens) with scopes `public_repo` and `read:discussion`:
+Ask naturally:
+- "Design a Jimmer entity for this domain object"
+- "Generate View and Input DTOs for this entity"
+- "Build a Jimmer query with filters and pagination"
+- "Create migration for this entity change"
+- "Diagnose this Jimmer save error"
 
-```bash
-export GITHUB_TOKEN=ghp_your_token_here
-```
+Skills call their own local `scripts/` helpers when project discovery or compile verification is needed.
 
-### What Gets Installed
+## Notes
 
-| Component | Claude Code | Qwen Code | GigaCode |
-|---|---|---|---|
-| Instructions | `.claude/*.md` | `.qwen/*.md` | `.gigacode/*.md` |
-| Commands | `.claude/commands/*.md` | `.qwen/commands/*.md` | `.gigacode/commands/*.md` |
-| Entry file | `CLAUDE.md` | `QWEN.md` | `GIGACODE.md` |
-| MCP (`--mcp`) | `.mcp.json` | `.qwen/settings.json` | `.gigacode/settings.json` |
-
-## Compatibility
-
-- **Jimmer:** 0.9.x (recommended 0.9.120) — 0.10.x
-- **Languages:** Kotlin and Java
-- **Frameworks:** Spring Boot, Quarkus
-- **AI Tools:** Claude Code, Qwen Code, GigaCode
+Skill examples intentionally use abstract names such as `DomainObject`, `RelatedObject`, and `Child`. Replace them with project-specific names only when applying the pattern inside a target project.
