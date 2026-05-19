@@ -5,7 +5,6 @@ TOOLKIT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOL="opencode"
 USE_SYMLINK=false
 INSTALL_MCP=false
-TARGET_PROJECT=""
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,9 +25,9 @@ log_info()    { echo -e "  ${CYAN}i${NC} $1"; }
 print_usage() {
     echo -e "${BOLD}Jimmer AI Toolkit Installer${NC}"
     echo ""
-    echo -e "Usage: ${CYAN}./install.sh${NC} [OPTIONS] /path/to/your/project"
+    echo -e "Usage: ${CYAN}./install.sh${NC} [OPTIONS]"
     echo ""
-    echo "Installs Jimmer skills. Safe to run repeatedly."
+    echo "Installs Jimmer skills into the user config so all projects can use them. Safe to run repeatedly."
     echo ""
     echo "Options:"
     echo -e "  ${CYAN}--tool${NC} opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)"
@@ -36,10 +35,10 @@ print_usage() {
     echo -e "  ${CYAN}--mcp${NC}                                    Install MCP server config"
     echo ""
     echo "Examples:"
-    echo -e "  ${DIM}./install.sh /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --mcp /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --tool claude /path/to/project${NC}"
-    echo -e "  ${DIM}./install.sh --tool gigacode /path/to/project${NC}"
+    echo -e "  ${DIM}./install.sh${NC}"
+    echo -e "  ${DIM}./install.sh --mcp${NC}"
+    echo -e "  ${DIM}./install.sh --tool claude${NC}"
+    echo -e "  ${DIM}./install.sh --tool gigacode${NC}"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -61,21 +60,12 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            TARGET_PROJECT="$1"
-            shift
+            echo -e "${RED}Error:${NC} Unknown option or unexpected argument: $1"
+            print_usage
+            exit 1
             ;;
     esac
 done
-
-if [ -z "$TARGET_PROJECT" ]; then
-    print_usage
-    exit 1
-fi
-
-if [ ! -d "$TARGET_PROJECT" ]; then
-    echo -e "${RED}Error:${NC} Directory $TARGET_PROJECT does not exist"
-    exit 1
-fi
 
 if [[ "$TOOL" != "opencode" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" ]]; then
     echo -e "${RED}Error:${NC} --tool must be 'opencode', 'claude', 'qwen', or 'gigacode'"
@@ -84,23 +74,23 @@ fi
 
 case "$TOOL" in
     opencode)
-        CONFIG_DIR=".opencode"
+        CONFIG_DIR="$HOME/.config/opencode"
         ;;
     claude)
-        CONFIG_DIR=".claude"
+        CONFIG_DIR="$HOME/.claude"
         ;;
     qwen)
-        CONFIG_DIR=".qwen"
+        CONFIG_DIR="$HOME/.qwen"
         ;;
     gigacode)
-        CONFIG_DIR=".gigacode"
+        CONFIG_DIR="$HOME/.gigacode"
         ;;
 esac
 
 SKILLS_DIR="$CONFIG_DIR/skills"
-mkdir -p "$TARGET_PROJECT/$SKILLS_DIR"
+mkdir -p "$SKILLS_DIR"
 
-echo -e "\n${BOLD}Jimmer AI Toolkit${NC} ${DIM}→${NC} ${CYAN}$TOOL${NC} ${DIM}→${NC} $TARGET_PROJECT/$SKILLS_DIR/"
+echo -e "\n${BOLD}Jimmer AI Toolkit${NC} ${DIM}→${NC} ${CYAN}$TOOL${NC} ${DIM}→${NC} $SKILLS_DIR/"
 
 INSTALLED=0
 SKIPPED=0
@@ -150,7 +140,7 @@ SKILL_COUNT=0
 for dir in "$TOOLKIT_DIR"/skills/*; do
     [ -d "$dir" ] || continue
     name=$(basename "$dir")
-    install_path "$dir" "$TARGET_PROJECT/$SKILLS_DIR/$name" "$name"
+    install_path "$dir" "$SKILLS_DIR/$name" "$name"
     SKILL_COUNT=$((SKILL_COUNT + 1))
 done
 
@@ -175,12 +165,12 @@ if [ "$INSTALL_MCP" = true ]; then
     }"
 
         if [ "$TOOL" = "claude" ] || [ "$TOOL" = "opencode" ]; then
-            MCP_FILE="$TARGET_PROJECT/.mcp.json"
+            MCP_FILE="$CONFIG_DIR/.mcp.json"
             if [ -f "$MCP_FILE" ]; then
                 if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
-                    log_skip "jimmer-docs already in .mcp.json"
+                    log_skip "jimmer-docs already in $MCP_FILE"
                 else
-                    log_info ".mcp.json exists. Add this to your mcpServers section:"
+                    log_info "$MCP_FILE exists. Add this to your mcpServers section:"
                     echo -e "    ${DIM}${MCP_SERVER_BLOCK}${NC}"
                 fi
             else
@@ -199,15 +189,15 @@ if [ "$INSTALL_MCP" = true ]; then
   }
 }
 MCPEOF
-                log_install "created .mcp.json"
+                log_install "created $MCP_FILE"
             fi
         else
-            MCP_FILE="$TARGET_PROJECT/$CONFIG_DIR/settings.json"
+            MCP_FILE="$CONFIG_DIR/settings.json"
             if [ -f "$MCP_FILE" ]; then
                 if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
-                    log_skip "jimmer-docs already in $CONFIG_DIR/settings.json"
+                    log_skip "jimmer-docs already in $MCP_FILE"
                 else
-                    log_info "$CONFIG_DIR/settings.json exists. Add this to your mcpServers section:"
+                    log_info "$MCP_FILE exists. Add this to your mcpServers section:"
                     echo -e "    ${DIM}${MCP_SERVER_BLOCK}${NC}"
                 fi
             else
@@ -225,7 +215,7 @@ MCPEOF
   }
 }
 MCPEOF
-                log_install "created $CONFIG_DIR/settings.json"
+                log_install "created $MCP_FILE"
             fi
         fi
 
