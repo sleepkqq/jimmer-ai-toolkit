@@ -5,7 +5,5 @@ node_modules/
 .DS_Store
 .claude/
 
-# MCP build artifacts (keep bundle.js)
-mcp/jimmer-docs-mcp/dist/index.*
-mcp/jimmer-docs-mcp/dist/docs-index.*
-mcp/jimmer-docs-mcp/dist/html-extractor.*
+# MCP build artifacts (built at install time)
+mcp/jimmer-docs-mcp/dist/

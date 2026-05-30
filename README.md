@@ -32,7 +32,6 @@ Scripts live inside the skills that use them:
 ### MCP Server (`mcp/jimmer-docs-mcp/`)
 
 - `jimmer_docs_search` — search and fetch content from official Jimmer documentation
-- `jimmer_github_search` — search GitHub issues and discussions for edge cases
 
 ## Prerequisites
 

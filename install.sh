@@ -150,21 +150,44 @@ if [ "$INSTALL_MCP" = true ]; then
     MCP_DIR="$TOOLKIT_DIR/mcp/jimmer-docs-mcp"
     MCP_DIST="$MCP_DIR/dist/bundle.js"
 
-    if [ ! -f "$MCP_DIST" ]; then
-        log_error "MCP bundle not found at $MCP_DIST"
-        log_error "Run: cd $MCP_DIR && npm install && npm run bundle"
+    if ! command -v npm >/dev/null 2>&1; then
+        log_error "npm not found. Install Node.js to build the MCP server."
         INSTALL_MCP=false
+    else
+        log_info "Building MCP server (npm install && npm run bundle)..."
+        if (cd "$MCP_DIR" && npm install --silent && npm run bundle --silent) >/dev/null 2>&1; then
+            log_install "built $MCP_DIST"
+        else
+            log_error "MCP build failed. Run manually: cd $MCP_DIR && npm install && npm run bundle"
+            INSTALL_MCP=false
+        fi
     fi
 
     if [ "$INSTALL_MCP" = true ]; then
         MCP_SERVER_BLOCK="\"jimmer-docs\": {
       \"type\": \"stdio\",
       \"command\": \"node\",
-      \"args\": [\"$MCP_DIST\"],
-      \"env\": { \"GITHUB_TOKEN\": \"\${GITHUB_TOKEN}\" }
+      \"args\": [\"$MCP_DIST\"]
     }"
 
-        if [ "$TOOL" = "claude" ] || [ "$TOOL" = "opencode" ]; then
+        if [ "$TOOL" = "claude" ]; then
+            # Claude Code reads global (user-scope) MCP from ~/.claude.json, not
+            # ~/.claude/.mcp.json. Register via the official CLI so it lands in the
+            # right place and survives config-format changes.
+            if command -v claude >/dev/null 2>&1; then
+                if claude mcp list 2>/dev/null | grep -q "jimmer-docs"; then
+                    log_skip "jimmer-docs already registered in claude user config"
+                else
+                    claude mcp add jimmer-docs --scope user \
+                        -- node "$MCP_DIST" >/dev/null 2>&1 \
+                        && log_install "registered jimmer-docs (claude mcp, user scope)" \
+                        || log_error "claude mcp add failed. Add manually: claude mcp add jimmer-docs --scope user -- node $MCP_DIST"
+                fi
+            else
+                log_info "claude CLI not found. Register manually:"
+                echo -e "    ${DIM}claude mcp add jimmer-docs --scope user -- node $MCP_DIST${NC}"
+            fi
+        elif [ "$TOOL" = "opencode" ]; then
             MCP_FILE="$CONFIG_DIR/.mcp.json"
             if [ -f "$MCP_FILE" ]; then
                 if grep -q "jimmer-docs" "$MCP_FILE" 2>/dev/null; then
@@ -180,11 +203,7 @@ if [ "$INSTALL_MCP" = true ]; then
     "jimmer-docs": {
       "type": "stdio",
       "command": "node",
-      "args": ["$MCP_DIST"],
-      "env": {
-        "GITHUB_TOKEN": "\${GITHUB_TOKEN}",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      }
+      "args": ["$MCP_DIST"]
     }
   }
 }
@@ -206,11 +225,7 @@ MCPEOF
   "mcpServers": {
     "jimmer-docs": {
       "command": "node",
-      "args": ["$MCP_DIST"],
-      "env": {
-        "GITHUB_TOKEN": "\${GITHUB_TOKEN}",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      }
+      "args": ["$MCP_DIST"]
     }
   }
 }
@@ -220,10 +235,7 @@ MCPEOF
         fi
 
         echo ""
-        log_info "Tools: ${CYAN}jimmer_github_search${NC}, ${CYAN}jimmer_docs_search${NC}"
-        log_info "For GitHub search, set GITHUB_TOKEN (scopes: public_repo, read:discussion):"
-        echo -e "    ${DIM}https://github.com/settings/tokens${NC}"
-        echo -e "    ${DIM}export GITHUB_TOKEN=ghp_your_token_here${NC}"
+        log_info "Tool: ${CYAN}jimmer_docs_search${NC}"
     fi
 fi
 
@@ -234,7 +246,7 @@ echo ""
 echo -e "  Skills:  ${CYAN}$SKILL_COUNT installed${NC} into ${CYAN}$SKILLS_DIR${NC}"
 echo -e "  Tasks:   ${CYAN}jimmer-entity${NC} ${CYAN}jimmer-dto${NC} ${CYAN}jimmer-query${NC} ${CYAN}jimmer-migrations${NC} ${CYAN}jimmer-debug${NC}"
 if [ "$INSTALL_MCP" = true ]; then
-    echo -e "  MCP:     ${CYAN}jimmer_github_search${NC}  ${CYAN}jimmer_docs_search${NC}"
+    echo -e "  MCP:     ${CYAN}jimmer_docs_search${NC}"
 fi
 echo ""
 echo -e "Ask your agent naturally. Skills load on demand from frontmatter triggers."

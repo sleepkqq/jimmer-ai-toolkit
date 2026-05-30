@@ -1,28 +1,37 @@
 # Jimmer Docs MCP Server
 
-MCP server providing Jimmer ORM documentation search and GitHub issues/discussions lookup.
+MCP server providing Jimmer ORM documentation search.
 
 ## Tools
 
 ### `jimmer_docs_search`
-Search Jimmer official documentation with contextual guidance.
+Search Jimmer official documentation and fetch real page content.
 
 Parameters:
-- `query` (required) — search query
-- `section` — `overview`, `query`, `mutation`, `cache`, `trigger`, `dto`, `spring`, or `all` (default: `all`)
-
-### `jimmer_github_search`
-Search GitHub issues and discussions in the `babyfish-ct/jimmer` repository.
-
-Parameters:
-- `query` (required) — search query
-- `type` — `issues`, `discussions`, or `all` (default: `all`)
-- `state` — `open`, `closed`, or `all` (default: `all`)
-- `limit` — max results, 1-20 (default: 5)
+- `query` (required) — search query (e.g. `@Formula`, `save command`, `cache invalidation`)
+- `limit` — max documentation pages, 1-5 (default: 3)
 
 ## Setup
 
-### 1. Install dependencies and build
+### 1. Install via the toolkit installer
+
+```bash
+./install.sh --tool claude --mcp
+```
+
+The installer builds the server (`npm install && npm run bundle`) and writes the
+`.mcp.json` (Claude Code / opencode) or `settings.json` (Qwen / GigaCode) entry.
+
+### 2. Verify
+
+In Claude Code, try:
+```
+Search Jimmer docs for "save command"
+```
+
+## Manual `.mcp.json` configuration
+
+If you're not using the installer, build first:
 
 ```bash
 cd mcp/jimmer-docs-mcp
@@ -30,36 +39,7 @@ npm install
 npm run bundle
 ```
 
-This produces `dist/bundle.js` — a single self-contained file used by the installer.
-
-### 2. Install into your project
-
-```bash
-./install.sh --mcp /path/to/project
-```
-
-This creates `.mcp.json` (Claude Code) or the equivalent settings file for Qwen/GigaCode.
-
-### 3. Set GitHub token (required for `jimmer_github_search`)
-
-Create a token at https://github.com/settings/tokens with scopes:
-- **`public_repo`** — read access to public repositories
-- **`read:discussion`** — read access to discussions
-
-```bash
-export GITHUB_TOKEN=ghp_your_token_here
-```
-
-### 4. Verify
-
-In Claude Code, try:
-```
-Search Jimmer GitHub for "NeitherIdNorKey" issues
-```
-
-## Manual `.mcp.json` configuration
-
-If you're not using the installer:
+Then add:
 
 ```json
 {
@@ -67,10 +47,7 @@ If you're not using the installer:
     "jimmer-docs": {
       "type": "stdio",
       "command": "node",
-      "args": ["/absolute/path/to/jimmer-ai-toolkit/mcp/jimmer-docs-mcp/dist/bundle.js"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-      }
+      "args": ["/absolute/path/to/jimmer-ai-toolkit/mcp/jimmer-docs-mcp/dist/bundle.js"]
     }
   }
 }
@@ -79,7 +56,7 @@ If you're not using the installer:
 ## Development
 
 ```bash
-npm run dev   # live TypeScript execution via tsx
-npm run build # tsc compile to dist/index.js
+npm run dev    # live TypeScript execution via tsx
+npm run build  # tsc compile to dist/index.js
 npm run bundle # single bundled file → dist/bundle.js (used in production)
 ```
