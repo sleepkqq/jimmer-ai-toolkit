@@ -35,37 +35,50 @@ Scripts live inside the skills that use them:
 
 ## Prerequisites
 
-- Git — target project should be a git repository
 - Node.js 18+ — required only when using `--mcp`
 - Agent CLI with skills support: OpenCode by default, or Claude Code/Qwen Code/GigaCode-compatible layout
 
 ## Installation
 
+Skills install into the agent's **user config**, so every project can use them. Safe to run repeatedly.
+
 ```bash
 chmod +x install.sh
-./install.sh /path/to/project
-./install.sh --mcp /path/to/project
-./install.sh --tool claude /path/to/project
-./install.sh --tool qwen /path/to/project
-./install.sh --tool gigacode /path/to/project
+./install.sh                    # skills only, OpenCode (default)
+./install.sh --mcp              # skills + MCP docs server
+./install.sh --tool claude      # install for Claude Code
+./install.sh --tool claude --mcp
+./install.sh --tool qwen
+./install.sh --tool gigacode
 ```
 
 ### Options
 
 ```text
-./install.sh [OPTIONS] /path/to/project
+./install.sh [OPTIONS]
 
   --tool opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)
   --symlink                                  Use symlinks instead of copies
-  --mcp                                      Install MCP server config
+  --mcp                                      Build and install the MCP docs server
 ```
+
+With `--mcp`, the installer builds the server (`npm install && npm run bundle`) and
+registers it. For Claude Code it uses `claude mcp add --scope user`; for the others it
+writes the tool's config file.
 
 ## Installed Layout
 
-Default OpenCode layout:
+Skills land in the selected tool's user-config skills directory:
+
+| Tool       | Skills directory                |
+|------------|---------------------------------|
+| opencode   | `~/.config/opencode/skills/`    |
+| claude     | `~/.claude/skills/`             |
+| qwen       | `~/.qwen/skills/`               |
+| gigacode   | `~/.gigacode/skills/`           |
 
 ```text
-/path/to/project/.opencode/skills/
+<skills-dir>/
   jimmer-entity/SKILL.md
   jimmer-dto/SKILL.md
   jimmer-query/SKILL.md
