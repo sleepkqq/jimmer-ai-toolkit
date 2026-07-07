@@ -8,15 +8,16 @@ Skills-native toolkit that helps AI coding agents work with Jimmer ORM without k
 
 Task skills:
 - `jimmer-entity` — entity creation/change workflow with interface, association, key, base type, and repository rules
-- `jimmer-dto` — `.dto` workflow and syntax for Views, Inputs, unsafe Inputs, Specifications, aliases, and association projections
-- `jimmer-query` — typed query workflow for filters, pagination, `TABLE_EX`, aggregates, typed tuples, and bulk operations
+- `jimmer-dto` — `.dto` workflow and syntax for Views, Inputs, Specifications, input handle modes, fold/flat, aliases, and configurations
+- `jimmer-query` — typed query workflow for filters, pagination, `TABLE_EX`, aggregates, typed tuples, base tables, and bulk operations
 - `jimmer-migrations` — Liquibase/Flyway migrations aligned with Jimmer annotations and DB constraints
 - `jimmer-debug` — diagnosis workflow for save, dissociation, key, loading, optimistic lock, and query errors
 
 Reference skills:
 - `jimmer-repositories` — repository/service boundaries, built-ins, and `saveCommand` return patterns
 - `jimmer-fetchers` — Fetcher API, generated code, View-vs-Fetcher decisions, and N+1 batch loading
-- `jimmer-save-modes` — `SaveMode`, `AssociatedSaveMode`, key matching, child replacement, save result handling
+- `jimmer-save-modes` — `SaveMode`, `AssociatedSaveMode`, key matching, upsert masks, save command options, `QueryReason`
+- `jimmer-advanced-mappings` — `@Formula`, `@IdView`, `@ManyToManyView`, `@LogicalDeleted`, `@Embeddable`, `@Serialized`, `@MapsId`, transient resolvers
 - `jimmer-kotlin` — Kotlin entity/query/save/KSP patterns
 - `jimmer-quarkus` — Quarkus dependencies, CDI/JAX-RS layers, config
 
@@ -89,6 +90,7 @@ Skills land in the selected tool's user-config skills directory:
   jimmer-save-modes/SKILL.md
   jimmer-kotlin/SKILL.md
   jimmer-quarkus/SKILL.md
+  jimmer-advanced-mappings/SKILL.md
   jimmer-entity/scripts/scan-project.sh
   jimmer-query/scripts/scan-project.sh
   jimmer-dto/scripts/compile.sh

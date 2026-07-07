@@ -1,11 +1,11 @@
 ---
 name: jimmer-fetchers
 description: |
-  Jimmer Fetcher and generated-code patterns, View-vs-Fetcher decisions, Input DTO conversion, and N+1 batch loading.
+  Jimmer Fetcher and generated-code patterns, View-vs-Fetcher decisions, ReferenceFetchType, field-level config, Input DTO conversion, and N+1 batch loading.
 triggers:
   - "Jimmer fetcher"
   - "Fetcher"
-  - "View DTO"
+  - "ReferenceFetchType"
   - "Input DTO"
   - "generated Jimmer code"
   - "N+1"
@@ -54,20 +54,36 @@ Use generated `Fetchers` constants. Do not use `$` references in Java.
 | `allReferenceFields()` | FK associations id-only |
 | `allTableFields()` | scalars + references |
 
+### Reference fetch strategy
+
+`ReferenceFetchType` per reference association: `AUTO` (default), `SELECT` (separate batched query), `JOIN_IF_NO_CACHE`, `JOIN_ALWAYS` (fetch via join in main query):
+
+```java
+BOOK_FETCHER.allScalarFields()
+    .store(ReferenceFetchType.JOIN_ALWAYS, BOOK_STORE_FETCHER.allScalarFields());
+```
+
+In `.dto` files the same is `!fetchType(JOIN_ALWAYS)`.
+
+### Field-level config
+
+Collection/recursive fields accept lambda config: `filter(args -> args.orderBy(...))`, `batch(n)`, `limit(limit, offset)`, `depth(n)` / `recursive(...)` for self-associations.
+
 ## Generated Code
 
 | Generated class | Purpose |
 |---|---|
 | `DomainObjectDraft` | mutable builder |
 | `DomainObjectTable` / `DomainObjectTableEx` | typed query tables |
+| `DomainObjectProps` | typed prop constants |
 | `Tables` | table constants |
 | `Fetchers` | fetcher constants |
 | `Immutables` | entity factory only |
-| `*View`, `*Input` | DTO classes |
+| `*View`, `*Input`, `*Spec` | DTO classes |
 
 ## N+1
 
-Jimmer batch-loads associations. Tune in config when needed:
+Jimmer batch-loads associations (defaults: batch 128, list batch 16). Tune in config when needed:
 
 ```yaml
 jimmer:

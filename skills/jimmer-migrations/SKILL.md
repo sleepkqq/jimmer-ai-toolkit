@@ -1,7 +1,7 @@
 ---
 name: jimmer-migrations
 description: |
-  Database migration workflow for Jimmer entity changes with type mapping, FK/index rules, and annotation-to-constraint alignment.
+  Database migration workflow for Jimmer entity changes with type mapping, FK/index rules, logical-delete columns, and annotation-to-constraint alignment.
 triggers:
   - "Jimmer migration"
   - "Liquibase"
@@ -55,11 +55,14 @@ scripts/compile.sh /path/to/project
 | Jimmer annotation | DB constraint |
 |---|---|
 | `@OnDissociate(DELETE)` | `ON DELETE CASCADE` |
-| `@OnDissociate(SET_NULL)` | `ON DELETE SET NULL` |
-| `@Key` | unique constraint on key columns |
-| `@KeyUniqueConstraint` | DB unique constraint required |
+| `@OnDissociate(SET_NULL)` | `ON DELETE SET NULL`, column nullable |
+| `@Key` | unique constraint on key columns (one constraint per `group`) |
+| `@KeyUniqueConstraint` | DB unique constraint required; include logical-delete flag column when entity has `@LogicalDeleted`; `isNullNotDistinct = true` -> `UNIQUE NULLS NOT DISTINCT` (Postgres) |
 | `@Version` | integer not null default 0 |
+| `@LogicalDeleted` | flag column: boolean not null default false / nullable timestamp / etc. |
 | `@OneToOne @JoinColumn` | FK plus unique when truly one-to-one |
+| `@MapsId` | PK column doubles as FK — no separate FK column |
+| `@JoinColumn(foreignKeyType = FAKE)` | no FK constraint on purpose — do not add one |
 
 ## Index Rules
 
@@ -68,6 +71,7 @@ scripts/compile.sh /path/to/project
 - inverse `@OneToMany` FK -> index on child table.
 - many-to-many join table -> indexes for both directions.
 - unique constraint for `@Key` usually replaces extra same-column index.
+- partial index (`WHERE deleted_at IS NULL`) when combining unique keys with timestamp-based logical delete on Postgres — only if `@KeyUniqueConstraint` is not used for SQL upserts.
 
 ## Safety
 
