@@ -1,7 +1,7 @@
 ---
 name: jimmer-dto
 description: |
-  Jimmer .dto language workflow and syntax for Views, Inputs, Specifications, input handle modes (fixed/static/dynamic/fuzzy), fold/flat, alias groups, configurations, and enum mappings.
+  Jimmer .dto language workflow and syntax for Views, Inputs, Specifications, DTO composition (reusable DTO types, fragments, source bundles), input handle modes (fixed/static/dynamic/fuzzy), fold/flat, alias groups, configurations, and enum mappings.
 triggers:
   - "Jimmer DTO"
   - ".dto"
@@ -67,6 +67,31 @@ specification DomainObjectSpec {
     associatedIdEq(relatedObject)
 }
 ```
+
+## Composition & Reuse
+
+Two mechanisms; pick by what is being reused:
+
+| Reuse | Mechanism | Generates a type |
+|---|---|---|
+| An associated object's shape across several DTOs | reusable DTO: `store -> StoreView` | yes (the referenced DTO) |
+| A set of properties across DTOs of any kind | `fragment` + `#include(Name)` | no |
+
+```dto
+StoreView for BookStore { id  name }
+
+fragment BookSummaryFields for Book { id  name  edition }
+
+BookView for Book {
+    #include(BookSummaryFields)
+    store as storeInfo -> StoreView    // property type IS StoreView; no TargetOf_store generated
+}
+```
+
+- Output DTO associations must reference output views; input associations reference inputs; specifications reference specifications (`store -> StoreSpecification` keeps join-vs-exists semantics from the association cardinality).
+- Fetch configurations (`!fetchType`, `!batch`, `!where`, `!orderBy`) stay local to the using association — never copied into the referenced DTO.
+- Fragments are DTO-kind neutral (may carry `like`/`ge` etc. — validated at include site), support macros/exclusions/nested fragments; `#types` is not allowed inside a fragment.
+- Reusable DTOs may come from a compiled dependency; a module can publish its `.dto` sources as a bundle (`META-INF/jimmer/dto-bundle.properties`) so downstream modules compile against them. Cyclic reusable-DTO references are a compile error — use explicit recursive associations instead.
 
 ## Macros
 

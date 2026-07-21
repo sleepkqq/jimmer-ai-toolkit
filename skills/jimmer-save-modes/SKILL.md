@@ -80,7 +80,7 @@ sql.saveCommand(domainObject)
 
 ## Result Rule
 
-Never re-query after save. Use `getModifiedEntity()`, or:
+Never re-query after save. Kotlin: `sqlClient.save(entity) { ... }.modifiedEntity`; batch — `.items.map { it.modifiedEntity }`. Java: `getModifiedEntity()`, or:
 
 ```java
 DomainObjectDetailView view = repository.saveCommand(input)

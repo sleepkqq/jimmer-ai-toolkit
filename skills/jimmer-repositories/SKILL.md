@@ -35,6 +35,19 @@ public interface DomainObjectRepository extends JRepository<DomainObject, UUID> 
 
 Add custom method only when code in current task directly calls it and built-ins cannot do it.
 
+## Reuse Ladder
+
+For each data need, take the FIRST rung that expresses it — and stop there:
+
+1. **Built-in** `JRepository`/`KRepository` method (`findNullable`, `viewer(...)`, `findAll`, `save*`, `deleteById`, ...).
+2. **Derived query method** — a SIGNATURE with NO body; the runtime parses the name and generates the SQL (Spring Data style; supported by Spring Data Jimmer and quarkus-jimmer-extension): `findByAuthorIdAndStatus(...)`, `fun <V : View<E>> findByUserId(userId, viewType: KClass<V>): V?`, `deleteByViewerId(viewerId): Int`. If you are writing `createQuery`/`where`/`select`, you are NOT on this rung. Writing a body that a derived name could express is a defect — and check the interface first, the method may already exist.
+3. **Custom DSL method** — only when the query needs predicates/subqueries/tuples a name cannot express.
+
+The ladder cuts BOTH ways — granularity is one METHOD CALL = one QUERY:
+
+- Never reimplement rung 1–2 as rung 3 (duplicate of an existing/derivable method).
+- Never assemble ONE result from a CHAIN of rung-1/2 calls (`findById` + `findAllByX` + `existsBy...` = 3 sequential SQL). A multi-source result is ONE rung-3 query with joins/subqueries — cheaper and atomic.
+
 ## Built-ins Not To Reimplement
 
 ```java

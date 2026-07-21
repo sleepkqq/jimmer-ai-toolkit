@@ -71,8 +71,10 @@ long deletedMillis();
 ```
 
 - Global filter hides deleted rows automatically; `deleteById` becomes `UPDATE` when entity has the flag (unless `DeleteMode.PHYSICAL`).
-- `@KeyUniqueConstraint` upserts require the DB unique constraint to include the logical-delete flag column.
-- `@JoinTable(deletedWhenEndpointIsLogicallyDeleted = true)` cascades to middle tables.
+- `@KeyUniqueConstraint` upserts + logical delete — two valid schema shapes:
+  - multi-version flag (timestamp/tombstone values): the DB unique constraint must include the delete-flag column (`unique(key..., deleted_millis)`) — deleted versions coexist;
+  - boolean flag: a partial unique index (`unique ... where deleted = false`) works for key-based upsert on dialects that can express a conflict predicate (PostgreSQL); dialects that cannot fall back to select-then-write.
+- `@JoinTable(deletedWhenEndpointIsLogicallyDeleted = true)` physically deletes middle-table rows of a logically deleted endpoint; a `@JoinTable` with its own `logicalDeletedFilter` logically deletes them instead.
 
 ## @Embeddable + @PropOverride
 
@@ -100,13 +102,21 @@ List<String> tags();             // jsonb/json column, Jackson-serialized
 
 ## @MapsId — target id inside own id
 
+Use when the schema itself says so: the association's FK columns ARE the owner's PK (shared-PK one-to-one) or one segment of a composite PK. It describes column identity, not naming.
+
 ```java
-@MapsId                          // this reference's target id == this entity's id
+@Id
+long messageId();                // ordinary @Id — NOT an @IdView, never annotate it as one
+
+@MapsId                          // whole id mapped from the target
 @OneToOne
-User user();
+@JoinColumn                      // still required (owning side); name comes from the naming strategy
+Message message();
 ```
 
-For composite ids, `@MapsId("pathInsideId")` maps into a part of the id. Jimmer optimizes joins through such references (no extra join).
+For composite ids, `@MapsId("pathInsideId")` maps the target id into one path of the embedded id; the other parts stay local. On save, Jimmer keeps the id property and the association consistent (set both to the same value in the draft).
+
+Query optimization: id-oriented predicates/order/group/selections on the association reuse the owner's own columns (no join), and a mapped-id association used purely as a bridge gets its middle join removed — only where semantics (nullability, no target columns referenced) allow.
 
 ## @Transient + TransientResolver — computed association/aggregate
 
@@ -116,6 +126,25 @@ long childCount();
 ```
 
 Resolver implements `TransientResolver<ID, V>` with batch `resolve(Collection<ID>)` — N+1 safe, cacheable.
+
+Shared resolver across entities — resolver context (experimental, opt-in via `@ExperimentalTransientResolverContext` in Kotlin): the `resolve(ids, ctx)` overload exposes `ctx.prop` (which property/declaring type is being resolved), `ctx.connection`, `ctx.sourceIds` — one resolver implements the algorithm (e.g. tree breadcrumbs) for every concrete entity instead of one resolver class per entity. Old single-arg resolvers keep working unchanged.
+
+## Generic mapped superclass
+
+`@MappedSuperclass` supports self-bounded generics with `where` constraints — define recursive structure once:
+
+```kotlin
+@MappedSuperclass
+interface BaseTreeNode<T> where T : BaseTreeNode<T> {
+    @ManyToOne val parent: T?
+    @OneToMany(mappedBy = "parent") val children: List<T>
+}
+
+@Entity
+interface ProductCategory : BaseTreeNode<ProductCategory> { @Id val id: Long }
+```
+
+`parent`/`children` materialize with the concrete type (`ProductCategory`). Multiple inheritance of mapped superclasses is allowed (`BaseEntity, TenantAware`) — the tenant/audit pattern pairs with global filters and draft interceptors. Combine with resolver context: one shared resolver serves all tree entities extending the same base.
 
 ## Enum mapping
 

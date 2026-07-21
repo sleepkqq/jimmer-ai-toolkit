@@ -34,6 +34,15 @@ scripts/next-migration.sh /path/to/project
 scripts/compile.sh /path/to/project
 ```
 
+## DDL Compiler — generated schema from entities
+
+Jimmer ships a compile-time DDL generator (`jimmer-ddl-compiler` as an extra KSP/APT processor). Use it when the project wants schema SQL derived from the entity model instead of hand-written; always review generated SQL before applying.
+
+- Enable: add the processor + `jimmerDdl.*` args (`enabled`, `databaseType` e.g. `postgresql`, `outputFormat` `flyway`|`plain`, `outputDir`, `version`, `description`).
+- Incremental: a snapshot file (`.jimmer-ddl/entity-table-snapshot.properties`) records table hashes — later builds emit diff SQL and detect `@Table(name=...)` renames. With JDBC settings and `compareDatabase`, it diffs against the live schema instead.
+- Scope knobs: `includePackages`/`excludePackages`, `includeForeignKeys`/`includeIndexes`/`includeSequences`/`includeManyToManyTables`; `profiles` generate for several dialects in one build.
+- In projects with an established hand-written migration flow, the generator is a draft source, not a replacement — the reviewed migration file stays the source of truth.
+
 ## Type Mapping
 
 | Java/Kotlin | PostgreSQL | MySQL |

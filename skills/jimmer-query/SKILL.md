@@ -47,6 +47,12 @@ scripts/compile.sh /path/to/project
 | Window functions / reuse of query result columns | `createBaseQuery` + `asBaseTable` |
 | Nonstandard join condition | `WeakJoin` (`t.asTableEx().weakJoin(...)`) |
 | Bulk update/delete | `createUpdate` / `createDelete` |
+| Page without exact count (scroll/typeahead) | `fetchSlice(limit, offset)` → `isTail` |
+| Existence check | `exists()` — never `count() > 0` |
+| Export/ETL over a large result (must not hold all rows) | `.stream()` (JDBC cursor) in try-with-resources/`use`; tune `jdbcFetchSize(n)`/`jdbcQueryTimeout(s)` per query |
+| Bulk update whose new values are needed | `returning(...)` on the update (see jimmer-performance) |
+
+Streaming constraint: a fetcher may use join-loaded associations, but an association needing a secondary select after root rows is rejected for `stream()` — such shapes need `execute()`.
 
 ## Java DSL Rules
 
