@@ -6,6 +6,8 @@ triggers:
   - "Quarkus Jimmer"
   - "quarkus.jimmer"
   - "quarkus-jimmer"
+  - "jimmer application.yml"
+  - "jimmer config keys"
   - "JAX-RS Jimmer"
 jimmer:
   toolkit: jimmer-ai-toolkit
@@ -69,8 +71,7 @@ quarkus:
     language: kotlin            # java | kotlin
     show-sql: true
     pretty-sql: true
-    database-validation:
-      mode: NONE                # NONE | WARNING | ERROR
+    database-validation-mode: NONE   # NONE | WARNING | ERROR (nested database-validation.mode is deprecated)
   # entities in a separate module need Jandex visibility:
   index-dependency:
     model:
@@ -78,7 +79,9 @@ quarkus:
       artifact-id: example-model
 ```
 
-Other keys: `quarkus.jimmer.error-translator.*`, dialect and batch sizes per datasource; multiple datasources via `quarkus.jimmer.<datasource-name>.*`. Dialect is normally derived from `quarkus.datasource.db-kind`.
+### Key registry
+
+Full registry of every `application.yml` key (shared Spring/Quarkus set, quarkus-only and spring-only markers) lives in the `jimmer-config` reference skill. Quarkus specifics in short: per-datasource keys via `quarkus.jimmer.<datasource-name>.<key>`; dialect derived from `quarkus.datasource.db-kind`; entity cache configured declaratively via `quarkus.jimmer.cache.entities`.
 
 Native image: add `--initialize-at-run-time` for dialects touched at build time if the build complains.
 
