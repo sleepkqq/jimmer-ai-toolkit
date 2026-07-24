@@ -1,14 +1,8 @@
 ---
 name: jimmer-migrations
 description: |
-  Database migration workflow for Jimmer entity changes with type mapping, FK/index rules, logical-delete columns, and annotation-to-constraint alignment.
-triggers:
-  - "Jimmer migration"
-  - "Liquibase"
-  - "Flyway"
-  - "@KeyUniqueConstraint"
-  - "@OnDissociate"
-jimmer:
+  Use when a Jimmer entity change needs a database migration — adding or changing a column, FK, index, or logical-delete column and aligning Liquibase / Flyway DDL with Jimmer annotations (@Key / @KeyUniqueConstraint, @OnDissociate). Type mapping and annotation-to-constraint rules.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
 ---

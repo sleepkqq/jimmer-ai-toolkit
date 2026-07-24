@@ -1,15 +1,8 @@
 ---
 name: jimmer-kotlin
 description: |
-  Kotlin-specific Jimmer entity, KRepository, query DSL, saveCommand DSL, DraftInterceptor vs DraftPreProcessor, config, and KSP patterns.
-triggers:
-  - "Kotlin Jimmer"
-  - "KRepository"
-  - "KSP"
-  - "DraftInterceptor"
-  - "DraftPreProcessor"
-  - "jimmer language kotlin"
-jimmer:
+  Use when doing Jimmer in Kotlin specifically — Kotlin entity interfaces, KRepository, the Kotlin query DSL and saveCommand DSL, DraftInterceptor vs DraftPreProcessor (e.g. an interceptor not firing on save), KSP setup, and Kotlin config.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

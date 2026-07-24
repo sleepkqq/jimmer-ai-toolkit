@@ -1,15 +1,8 @@
 ---
 name: jimmer-quarkus
 description: |
-  Quarkus-specific Jimmer integration for dependencies, repository imports, JAX-RS resources, CDI services, config keys, multi-datasource, and Kotlin all-open.
-triggers:
-  - "Quarkus Jimmer"
-  - "quarkus.jimmer"
-  - "quarkus-jimmer"
-  - "jimmer application.yml"
-  - "jimmer config keys"
-  - "JAX-RS Jimmer"
-jimmer:
+  Use when integrating Jimmer into a Quarkus project — adding dependencies, importing repositories, wiring JAX-RS resources and CDI services, multi-datasource, Kotlin all-open, and Quarkus-specific setup. For "connect / set up Jimmer on Quarkus". Config-key lookup itself is in jimmer-config.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

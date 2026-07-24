@@ -1,17 +1,8 @@
 ---
 name: jimmer-caching
 description: |
-  Jimmer entity cache guide: object/association/calculated cache kinds, CacheFactory + ChainCacheBuilder wiring (Caffeine L1 + Redis L2), BinLog vs Transaction trigger consistency, multi-view caches with SubKey for user filters, abandoned-cache diagnostics.
-triggers:
-  - "Jimmer cache"
-  - "entity cache"
-  - "CacheFactory"
-  - "association cache"
-  - "calculated cache"
-  - "multi-view cache"
-  - "SubKey"
-  - "cache invalidation"
-jimmer:
+  Use when adding or debugging Jimmer's entity cache — object / association / calculated cache kinds, wiring CacheFactory + ChainCacheBuilder (Caffeine L1 + Redis L2), cache invalidation and BinLog-vs-Transaction trigger consistency, per-user multi-view caches with SubKey, or diagnosing stale / abandoned caches. Keywords: entity cache, cache over Redis, L2 cache.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

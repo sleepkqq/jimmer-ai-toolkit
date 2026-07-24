@@ -1,15 +1,8 @@
 ---
 name: jimmer-config
 description: |
-  Registry of every Jimmer application.yml/properties key — Spring Boot (jimmer.*) and Quarkus (quarkus.jimmer.*) share one key set; markers show quarkus-only and spring-only additions. SQL logging, validation, triggers, batch sizes, pagination, save returning, entity cache, client/OpenAPI generation.
-triggers:
-  - "jimmer application.yml"
-  - "jimmer config"
-  - "jimmer properties"
-  - "jimmer.language"
-  - "quarkus.jimmer"
-  - "show-sql"
-jimmer:
+  Use when choosing or locating a Jimmer configuration key in application.yml / properties — where to enable SQL logging (show-sql), validation, triggers, batch sizes, default pagination, save-returning, entity cache, or client / OpenAPI generation. Registry of every jimmer.* (Spring Boot) and quarkus.jimmer.* (Quarkus) key. For Quarkus setup and dependencies see jimmer-quarkus.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

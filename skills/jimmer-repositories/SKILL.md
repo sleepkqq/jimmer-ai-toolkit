@@ -1,14 +1,8 @@
 ---
 name: jimmer-repositories
 description: |
-  Jimmer repository and service-layer patterns for JRepository/KRepository boundaries, built-ins, custom query methods, and saveCommand usage.
-triggers:
-  - "JRepository"
-  - "KRepository"
-  - "saveCommand"
-  - "repository.viewer"
-  - "Jimmer repository"
-jimmer:
+  Use when structuring the repository / service layer — JRepository vs KRepository boundaries, built-in methods, adding a custom finder / query method, and where saveCommand belongs. For "repository with a custom search method". Query DSL itself is in jimmer-query; save semantics in jimmer-save-modes.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

@@ -1,16 +1,8 @@
 ---
 name: jimmer-dto
 description: |
-  Jimmer .dto language workflow and syntax for Views, Inputs, Specifications, DTO composition (reusable DTO types, fragments, source bundles), input handle modes (fixed/static/dynamic/fuzzy), fold/flat, alias groups, configurations, and enum mappings.
-triggers:
-  - "Jimmer DTO"
-  - ".dto"
-  - "View DTO"
-  - "Input DTO"
-  - "Specification"
-  - "input handle mode"
-  - "dynamic input"
-jimmer:
+  Use when writing or changing a .dto file — defining a View (subset of entity fields plus nested objects to return to a client), an Input for save, or a Specification for filtering; plus DTO composition / fragments, input handle modes (fixed / static / dynamic / fuzzy), fold / flat, alias groups, and enum mappings. For returning partial or nested entity data to an API.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
 ---

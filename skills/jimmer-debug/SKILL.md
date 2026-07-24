@@ -1,16 +1,8 @@
 ---
 name: jimmer-debug
 description: |
-  Jimmer debugging workflow for save mode, dissociation, key, fetcher/view loading, optimistic lock, constraint violations, ExceptionTranslator, and generated-code errors.
-triggers:
-  - "Jimmer error"
-  - "NeitherIdNorKey"
-  - "CannotDissociateTarget"
-  - "UnloadedPropertyException"
-  - "OptimisticLockError"
-  - "ExceptionTranslator"
-  - "QueryReason"
-jimmer:
+  Use when a Jimmer operation throws or misbehaves — errors such as NeitherIdNorKey, CannotDissociateTarget, UnloadedPropertyException, optimistic-lock failures, constraint violations, or generated-code / fetcher-loading problems. Diagnosis workflow for save mode, dissociation, key, loading, ExceptionTranslator, and QueryReason auditing.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
 ---

@@ -1,15 +1,8 @@
 ---
 name: jimmer-entity
 description: |
-  Jimmer entity creation and modification workflow with design rules for interface entities, associations, keys, key groups, dissociation, base types, and minimal repositories.
-triggers:
-  - "Jimmer entity"
-  - "@Entity"
-  - "@MappedSuperclass"
-  - "@OnDissociate"
-  - "@Key"
-  - "JRepository"
-jimmer:
+  Use when creating or changing a Jimmer @Entity — adding associations (@OneToMany / @ManyToOne / @ManyToMany, e.g. many-to-many between two entities), keys (@Key) and key groups, @OnDissociate behavior, @MappedSuperclass / base types, or a minimal JRepository. Interface-entity design rules and dissociation.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
 ---

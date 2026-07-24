@@ -249,4 +249,4 @@ if [ "$INSTALL_MCP" = true ]; then
     echo -e "  MCP:     ${CYAN}jimmer_docs_search${NC}"
 fi
 echo ""
-echo -e "Ask your agent naturally. Skills load on demand from frontmatter triggers."
+echo -e "Ask your agent naturally. Skills load on demand from frontmatter descriptions."

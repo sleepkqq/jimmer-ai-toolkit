@@ -1,15 +1,8 @@
 ---
 name: jimmer-fetchers
 description: |
-  Jimmer Fetcher and generated-code patterns, View-vs-Fetcher decisions, ReferenceFetchType, field-level config, Input DTO conversion, and N+1 batch loading.
-triggers:
-  - "Jimmer fetcher"
-  - "Fetcher"
-  - "ReferenceFetchType"
-  - "Input DTO"
-  - "generated Jimmer code"
-  - "N+1"
-jimmer:
+  Use when shaping what a query loads via the Fetcher API — choosing fields and nested objects, ReferenceFetchType, deciding View vs Fetcher, converting Input DTOs, or fixing N+1 caused by association loading. Generated-code loading patterns and field-level fetch config. For query structure and pagination see jimmer-query; for save-vs-requery cost see jimmer-performance.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

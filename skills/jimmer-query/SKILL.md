@@ -1,16 +1,8 @@
 ---
 name: jimmer-query
 description: |
-  Typed Jimmer query workflow for table selection, dynamic predicates, pagination, aggregates, typed tuples, base tables, window functions, and bulk operations.
-triggers:
-  - "Jimmer query"
-  - "createQuery"
-  - "TABLE_EX"
-  - "@TypedTuple"
-  - "fetchPage"
-  - "createBaseQuery"
-  - "createUpdate"
-jimmer:
+  Use when writing a typed Jimmer query — selecting tables, dynamic / optional predicates (filters), pagination (fetchPage), aggregates and typed tuples, TABLE_EX joins, base tables / CTEs, window functions, and bulk update / delete. For "list with filters and paging" or "build a query".
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
 ---

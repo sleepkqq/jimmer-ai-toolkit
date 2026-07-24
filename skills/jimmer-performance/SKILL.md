@@ -1,16 +1,8 @@
 ---
 name: jimmer-performance
 description: |
-  Jimmer performance guide: using save results instead of re-querying (fetcher/view save results, DML returning), assignment expressions for atomic column math, bulk update returning, N+1 batch loading, fetchPage vs fetchSlice, exists vs count, QueryReason auditing, associated-mode costs, trigger/cache impact on bulk operations.
-triggers:
-  - "Jimmer performance"
-  - "save then find"
-  - "N+1"
-  - "fetchSlice"
-  - "QueryReason"
-  - "slow query"
-  - "re-query after save"
-jimmer:
+  Use when a Jimmer path is slow or does redundant work — re-querying after save instead of using the save result (fetcher / view save results, DML returning), N+1 on associations, atomic column math via assignment expressions, bulk update returning, fetchPage vs fetchSlice, exists vs count, associated-mode cost, and QueryReason auditing. Keywords: slow query, re-select after save, N+1.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: guide
 ---

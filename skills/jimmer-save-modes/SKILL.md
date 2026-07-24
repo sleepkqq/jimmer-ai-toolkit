@@ -1,15 +1,8 @@
 ---
 name: jimmer-save-modes
 description: |
-  Jimmer SaveMode and AssociatedSaveMode guide for inserts, updates, upserts, key matching, upsert masks, child replacement, save command options, and QueryReason.
-triggers:
-  - "SaveMode"
-  - "AssociatedSaveMode"
-  - "saveCommand"
-  - "UpsertMask"
-  - "QueryReason"
-  - "VIOLENTLY_REPLACE"
-jimmer:
+  Use when controlling how save() writes — insert vs update vs upsert (insert if absent else update), key matching, AssociatedSaveMode for child objects, upsert masks (UpsertMask), child replacement (VIOLENTLY_REPLACE), and save command options. For "update if exists else insert".
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---

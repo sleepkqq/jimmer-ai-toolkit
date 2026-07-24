@@ -1,17 +1,8 @@
 ---
 name: jimmer-advanced-mappings
 description: |
-  Jimmer advanced entity mappings: @Formula, @IdView, @ManyToManyView, @LogicalDeleted, @Embeddable, @Serialized, @MapsId, @Transient resolvers, @JoinSql, and enum mapping.
-triggers:
-  - "@Formula"
-  - "@IdView"
-  - "@ManyToManyView"
-  - "@LogicalDeleted"
-  - "@Embeddable"
-  - "@Serialized"
-  - "@MapsId"
-  - "TransientResolver"
-jimmer:
+  Use when mapping something beyond a plain column or association — a computed/derived field not in the table (@Formula), an exposed FK id (@IdView), a flattened many-to-many (@ManyToManyView), soft delete (@LogicalDeleted), a value object (@Embeddable), a JSON/serialized column (@Serialized), a shared primary key (@MapsId), a resolver-backed transient property (@Transient / TransientResolver), raw-SQL joins (@JoinSql), or enum-to-DB mapping.
+metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
 ---
