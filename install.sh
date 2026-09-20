@@ -157,6 +157,9 @@ if [ "$INSTALL_MCP" = true ]; then
     if ! command -v npm >/dev/null 2>&1; then
         log_error "npm not found. Install Node.js to build the MCP server."
         INSTALL_MCP=false
+    elif ! command -v git >/dev/null 2>&1; then
+        log_error "git not found. Install Git to retrieve MCP documentation snapshots."
+        INSTALL_MCP=false
     else
         log_info "Building MCP server (npm install && npm run bundle)..."
         if (cd "$MCP_DIR" && npm install --silent && npm run bundle --silent) >/dev/null 2>&1; then

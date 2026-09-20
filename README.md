@@ -42,11 +42,17 @@ Scripts live inside the skills that use them:
 
 ### MCP Server (`mcp/jimmer-docs-mcp/`)
 
-- `jimmer_docs_search` — search and fetch content from official Jimmer documentation
+- `jimmer_docs_search` — find relevant sections in the official documentation repository
+- `jimmer_docs_read` — read unchanged documentation/source with commit-pinned continuation
+- `jimmer_source_lookup` — locate official Jimmer API types at a branch, tag, or commit
+
+The server preserves MDX examples and exposes source revisions, refresh status, and
+imported fragments. See the [MCP guide](mcp/jimmer-docs-mcp/README.md).
 
 ## Prerequisites
 
 - Node.js 18+ — required only when using `--mcp`
+- Git 2.29+ — required only when using `--mcp`
 - Agent CLI with skills support: OpenCode by default, or Claude Code/Qwen Code/GigaCode/Codex
 
 ## Installation
