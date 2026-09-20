@@ -3,6 +3,7 @@ node_modules/
 .idea/
 *.iml
 .DS_Store
+__pycache__/
 .claude/
 
 # MCP build artifacts (built at install time)

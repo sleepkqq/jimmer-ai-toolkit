@@ -1,7 +1,6 @@
 ---
 name: jimmer-query
-description: |
-  Use when writing a typed Jimmer query — selecting tables, dynamic / optional predicates (filters), pagination (fetchPage), aggregates and typed tuples, TABLE_EX joins, base tables / CTEs, window functions, and bulk update / delete. For "list with filters and paging" or "build a query".
+description: Write Jimmer typed queries with dynamic predicates, collection filters, stable pagination, aggregates, base tables/CTEs and cursor streaming; diagnose duplicates or unexpected joins.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
@@ -9,98 +8,21 @@ metadata:
 
 # Jimmer Query
 
-Use for typed Jimmer queries, filters, pagination, aggregates, tuple projections, base tables/window functions, and bulk update/delete.
+1. Identify result shape, filters, cardinality, ordering and whether an exact total is needed. Reuse an existing repository method when it expresses the whole operation.
+2. Use a Fetcher/View for the read graph. A to-many join can multiply root rows: for “has matching child” prefer an EXISTS/implicit-subquery predicate; verify page/count behavior rather than adding joins blindly.
+3. Use `fetchPage` for an exact total, `fetchSlice` for has-more, `exists()` for existence. Pagination needs deterministic order with an ID tie-breaker.
+4. Use `stream()` only for a stream-compatible shape; close it within the connection/transaction lifetime. Fetcher associations requiring later secondary queries cannot stream.
+5. Compile the affected method and inspect representative SQL, bindings and result cardinality. Use the installed DSL, not raw SQL interpolation.
 
-## Workflow
+For global visibility use `jimmer-filters`. For query-derived `createInsert`/`createUpsert` use `jimmer-dml`; for object graph writes use `jimmer-save-modes`.
 
-1. Clarify data shape, filters, sorting, pagination, and return type.
-2. Run project scan when package/style unknown:
+## Reference Routing
 
-```bash
-scripts/scan-project.sh /path/to/project
-```
+[Query guide](GUIDE.md): load Java syntax, base-table or streaming details only when needed. Bundled scan/compile scripts are relative to this skill, not the target working directory.
 
-3. Choose approach from table below.
-4. Write only query methods called by current task.
-5. Compile:
-
-```bash
-scripts/compile.sh /path/to/project
-```
-
-## Approach Table
-
-| Need | Approach |
-|---|---|
-| Scalar/FK filters | `createQuery` + `TABLE` |
-| Filter on `@OneToMany` / `@ManyToMany` | `createQuery` + `TABLE_EX` |
-| Return entity/view | `.select(t.fetch(ViewClass.class))` or `.select(t)` |
-| Aggregate/subquery/expression not entity property | `@TypedTuple` class or `Tuple2..TupleN` |
-| Window functions / reuse of query result columns | `createBaseQuery` + `asBaseTable` |
-| Nonstandard join condition | `WeakJoin` (`t.asTableEx().weakJoin(...)`) |
-| Bulk update/delete | `createUpdate` / `createDelete` |
-| Page without exact count (scroll/typeahead) | `fetchSlice(limit, offset)` → `isTail` |
-| Existence check | `exists()` — never `count() > 0` |
-| Export/ETL over a large result (must not hold all rows) | `.stream()` (JDBC cursor) in try-with-resources/`use`; tune `jdbcFetchSize(n)`/`jdbcQueryTimeout(s)` per query |
-| Bulk update whose new values are needed | `returning(...)` on the update (see jimmer-performance) |
-
-Streaming constraint: a fetcher may use join-loaded associations, but an association needing a secondary select after root rows is rejected for `stream()` — such shapes need `execute()`.
-
-## Java DSL Rules
-
-- Method order: `.where()` -> `.groupBy()` -> `.orderBy()` -> `.select()`. `select()` is last.
-- `.as("name")` does not exist inside Java DSL `select()`.
-- Extract a table variable when a table constant is used more than once.
-- Dynamic predicates: `eqIf`, `likeIf`, `geIf`, ... skip null **and empty string** operands; `whereIf(cond, ...)` and `orderByIf(cond, ...)` for conditional clauses.
-- Use `LikeMode.ANYWHERE`, `START`, `END`, `EXACT` intentionally.
-
-```java
-var t = DOMAIN_OBJECT_TABLE;
-return sql().createQuery(t)
-    .where(t.relatedObject().name().eqIf(relatedObjectName))
-    .where(t.status().eqIf(status))
-    .orderBy(t.createdAt().desc())
-    .select(t.fetch(DomainObjectListView.class))
-    .fetchPage(page, size);
-```
-
-Collection filter:
-
-```java
-var t = DOMAIN_OBJECT_TABLE_EX;
-return sql().createQuery(t)
-    .where(t.labelObjects().id().in(labelObjectIds))
-    .select(t.fetch(DomainObjectListView.class))
-    .fetchPage(page, size);
-```
-
-Subquery: `sql().createSubQuery(otherTable)` inside predicates (`exists`, `in`, scalar compare).
-
-## Base Tables (window functions, column reuse)
-
-`createBaseQuery` builds a reusable inner query; `asBaseTable()` exposes it as a typed table with `get_1()`, `get_2()`, ... Fetchers still work on entity columns.
-
-```java
-var store = DOMAIN_OBJECT_TABLE;
-BaseTable2<DomainObjectTable, NumericExpression<Integer>> baseTable = sql()
-    .createBaseQuery(store)
-    .addSelect(store)
-    .addSelect(Expression.numeric().sql(
-        Integer.class, "dense_rank() over(order by %e desc)", someExpression))
-    .asBaseTable();
-
-return sql().createQuery(baseTable)
-    .where(baseTable.get_2().le(rankLimit))
-    .select(baseTable.get_1().fetch(DomainObjectListView.class))
-    .fetchPage(page, size);
-```
-
-Base queries support unions and pagination over the union.
-
-## Typed Tuple Rule
-
-Use `@TypedTuple` when `select()` contains non-entity values: counts, ranks, expressions, correlated subqueries. Keep tuple mapper near repository/query code unless project has convention.
-
-## Kotlin Note
-
-In Kotlin DSL, `table` supports collection joins without `TableEx`; null-safe operators spelled ``eq?``, ``like?``, etc.; view type passed as `KClass<V>`. See `jimmer-kotlin`.
+- Workflow
+- Approach Table
+- Java DSL Rules
+- Base Tables (window functions, column reuse)
+- Typed Tuple Rule
+- Kotlin Note

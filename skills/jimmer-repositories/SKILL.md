@@ -1,7 +1,6 @@
 ---
 name: jimmer-repositories
-description: |
-  Use when structuring the repository / service layer — JRepository vs KRepository boundaries, built-in methods, adding a custom finder / query method, and where saveCommand belongs. For "repository with a custom search method". Query DSL itself is in jimmer-query; save semantics in jimmer-save-modes.
+description: Choose Jimmer repository built-ins, derived methods or typed DSL queries; preserve transaction ownership, whole-result query shape and accepted save-result contracts in Spring or Quarkus.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -9,14 +8,14 @@ metadata:
 
 # Jimmer Repositories
 
-Use for repository/service boundaries and save/query placement.
+Inspect the existing architecture and actual repository implementation first. Spring repositories and the unified Quarkus module have related APIs but different generation/integration mechanisms. Direct SQL-client usage is also valid; do not create a repository layer solely for uniformity.
 
 ## Architecture
 
 - REST/resource layer delegates to service.
 - Service layer owns business logic and save mode choices.
 - Repository layer owns `sql()` queries and data access.
-- No direct SQL client access from service unless target project explicitly uses that pattern.
+- Match existing SQL-client/repository placement; keep the service's transaction and business-decision boundary explicit.
 
 ## Repository Size Rule
 
@@ -34,13 +33,13 @@ Add custom method only when code in current task directly calls it and built-ins
 For each data need, take the FIRST rung that expresses it — and stop there:
 
 1. **Built-in** `JRepository`/`KRepository` method (`findNullable`, `viewer(...)`, `findAll`, `save*`, `deleteById`, ...).
-2. **Derived query method** — a SIGNATURE with NO body; the runtime parses the name and generates the SQL (Spring Data style; supported by Spring Data Jimmer and quarkus-jimmer-extension): `findByAuthorIdAndStatus(...)`, `fun <V : View<E>> findByUserId(userId, viewType: KClass<V>): V?`, `deleteByViewerId(viewerId): Int`. If you are writing `createQuery`/`where`/`select`, you are NOT on this rung. Writing a body that a derived name could express is a defect — and check the interface first, the method may already exist.
+2. **Derived query method** — a supported signature with no body, for example `findByName(...)`. Quarkus discovers interfaces and generates implementations at build time; Spring uses its own integration. Verify projection/return-type support in the installed implementation.
 3. **Custom DSL method** — only when the query needs predicates/subqueries/tuples a name cannot express.
 
-The ladder cuts BOTH ways — granularity is one METHOD CALL = one QUERY:
+Choose the approach for the whole result, and inspect the resulting SQL:
 
 - Never reimplement rung 1–2 as rung 3 (duplicate of an existing/derivable method).
-- Never assemble ONE result from a CHAIN of rung-1/2 calls (`findById` + `findAllByX` + `existsBy...` = 3 sequential SQL). A multi-source result is ONE rung-3 query with joins/subqueries — cheaper and atomic.
+- Avoid an accidental chain of independent lookups for one result. Use an appropriate View/Fetcher or DSL query/subquery; batched graph loading can intentionally use several statements. One repository call does not guarantee one SQL statement or snapshot atomicity.
 
 ## Built-ins Not To Reimplement
 
@@ -83,4 +82,6 @@ return repository.saveCommand(input)
     .getModifiedView();
 ```
 
-Never re-query after save just to return saved data. Use modified entity/view from save result.
+For accepted writes use the requested modified entity/View instead of an unconditional re-query. Check `isAccepted` for conditional saves: a skipped `INSERT_IF_ABSENT` root does not return the conflicting database row. If that row is required without update, an explicit key lookup and concurrency policy are valid (`jimmer-save-modes`).
+
+Verify the generated method, emitted SQL and transaction scope. Sources: [Spring repository API](https://babyfish-ct.github.io/jimmer-doc/docs/spring/repository/), [Quarkus repositories](https://github.com/sleepkqq/jimmer/tree/main/project/jimmer-quarkus/runtime/src/main/java/io/quarkiverse/jimmer/runtime/repository).

@@ -12,6 +12,9 @@ Task skills:
 - `jimmer-query` — typed query workflow for filters, pagination, `TABLE_EX`, aggregates, typed tuples, base tables, and bulk operations
 - `jimmer-migrations` — Liquibase/Flyway migrations aligned with Jimmer annotations and DB constraints
 - `jimmer-debug` — diagnosis workflow for save, dissociation, key, loading, optimistic lock, and query errors
+- `jimmer-dml` — typed insert/upsert from query sources, conflict handling, returning, and dialect fallbacks
+- `jimmer-inheritance` — polymorphic entity mapping, subtype queries/DTOs, and controlled type transitions
+- `jimmer-filters` — global visibility filters, cache parameters, and mutation-boundary checks
 
 Reference skills:
 - `jimmer-repositories` — repository/service boundaries, built-ins, and `saveCommand` return patterns
@@ -19,7 +22,14 @@ Reference skills:
 - `jimmer-save-modes` — `SaveMode`, `AssociatedSaveMode`, key matching, upsert masks, save command options, `QueryReason`
 - `jimmer-advanced-mappings` — `@Formula`, `@IdView`, `@ManyToManyView`, `@LogicalDeleted`, `@Embeddable`, `@Serialized`, `@MapsId`, transient resolvers
 - `jimmer-kotlin` — Kotlin entity/query/save/KSP patterns
-- `jimmer-quarkus` — Quarkus dependencies, CDI/JAX-RS layers, config
+- `jimmer-quarkus` — the unified [sleepkqq/jimmer](https://github.com/sleepkqq/jimmer/tree/main/project/jimmer-quarkus) module: aligned dependencies, CDI/JTA, native support, and cache readiness
+- `jimmer-caching` — object/property caches, CDC invalidation, multi-view filters, and Quarkus Redis lifecycle
+- `jimmer-config` — framework-specific keys, defaults, and build/runtime scope
+- `jimmer-performance` — measured SQL/QueryReason diagnosis, result fetching, batching, and pagination
+
+Skills contain no fixed library versions: resolve the consumer's runtime and processor APIs before applying examples. Detailed syntax lives in `GUIDE.md` or `references/` where useful; the entry point keeps decisions and common failure modes immediately visible.
+
+Current trigger policy: **`TRANSACTION_ONLY` and `BOTH` are deprecated**. New cache setups use `BINLOG_ONLY` with an actual CDC delivery/invalidation path; changing the setting alone does not provide consistency.
 
 ### Skill Scripts
 
@@ -37,7 +47,7 @@ Scripts live inside the skills that use them:
 ## Prerequisites
 
 - Node.js 18+ — required only when using `--mcp`
-- Agent CLI with skills support: OpenCode by default, or Claude Code/Qwen Code/GigaCode-compatible layout
+- Agent CLI with skills support: OpenCode by default, or Claude Code/Qwen Code/GigaCode/Codex
 
 ## Installation
 
@@ -51,6 +61,8 @@ chmod +x install.sh
 ./install.sh --tool claude --mcp
 ./install.sh --tool qwen
 ./install.sh --tool gigacode
+./install.sh --tool codex       # Codex global skills (~/.agents/skills)
+./install.sh --tool codex --mcp # native codex mcp registration
 ```
 
 ### Options
@@ -58,14 +70,14 @@ chmod +x install.sh
 ```text
 ./install.sh [OPTIONS]
 
-  --tool opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)
+  --tool opencode|claude|qwen|gigacode|codex Target CLI tool (default: opencode)
   --symlink                                  Use symlinks instead of copies
   --mcp                                      Build and install the MCP docs server
 ```
 
 With `--mcp`, the installer builds the server (`npm install && npm run bundle`) and
-registers it. For Claude Code it uses `claude mcp add --scope user`; for the others it
-writes the tool's config file.
+registers it. Claude Code uses `claude mcp add --scope user`; Codex uses native
+`codex mcp list --json` and `codex mcp add`; the remaining tools use their config file.
 
 ## Installed Layout
 
@@ -77,6 +89,7 @@ Skills land in the selected tool's user-config skills directory:
 | claude     | `~/.claude/skills/`             |
 | qwen       | `~/.qwen/skills/`               |
 | gigacode   | `~/.gigacode/skills/`           |
+| codex      | `~/.agents/skills/`              |
 
 ```text
 <skills-dir>/
@@ -85,12 +98,18 @@ Skills land in the selected tool's user-config skills directory:
   jimmer-query/SKILL.md
   jimmer-migrations/SKILL.md
   jimmer-debug/SKILL.md
+  jimmer-dml/SKILL.md
+  jimmer-inheritance/SKILL.md
+  jimmer-filters/SKILL.md
   jimmer-repositories/SKILL.md
   jimmer-fetchers/SKILL.md
   jimmer-save-modes/SKILL.md
   jimmer-kotlin/SKILL.md
   jimmer-quarkus/SKILL.md
   jimmer-advanced-mappings/SKILL.md
+  jimmer-caching/SKILL.md
+  jimmer-config/SKILL.md
+  jimmer-performance/SKILL.md
   jimmer-entity/scripts/scan-project.sh
   jimmer-query/scripts/scan-project.sh
   jimmer-dto/scripts/compile.sh
@@ -113,4 +132,18 @@ Skills call their own local `scripts/` helpers when project discovery or compile
 
 ## Notes
 
-Skill examples intentionally use abstract names such as `DomainObject`, `RelatedObject`, and `Child`. Replace them with project-specific names only when applying the pattern inside a target project.
+Skill examples use synthetic domains or public upstream examples. Replace them with project-specific names only inside the target project.
+
+## Maintenance and checks
+
+- [Research and source ledger](docs/skill-refresh.md) — public source revisions, corrections, and authoring decisions.
+- [Skill canaries](tests/skill-evals/README.md) — reproducible baseline/updated comparisons through OpenCode using the configured model provider.
+- [Measured refresh results](tests/skill-evals/RESULTS.md) — assertion grades, retained answers, compiler feedback and evaluation limits.
+- [Revision-to-revision evaluation](tests/skill-evals/ROUND2.md) — independent masked grading, unseen transfer tasks, regressions and executable mutation checks.
+- [Cross-model evaluation](tests/skill-evals/CROSS-MODEL.md) — 192 answers from Luna, GPT-5.5 and Astra, with empty/reference comparisons and retained regressions.
+- [Transfer-focused refinement](docs/skill-refinement-method.md) — source-driven examples, frozen comparisons and independent validation without benchmark-specific answer templates.
+
+```bash
+python3 tests/validate-skills.py
+bash tests/test-codex-install.sh
+```

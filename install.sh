@@ -30,7 +30,7 @@ print_usage() {
     echo "Installs Jimmer skills into the user config so all projects can use them. Safe to run repeatedly."
     echo ""
     echo "Options:"
-    echo -e "  ${CYAN}--tool${NC} opencode|claude|qwen|gigacode       Target CLI tool (default: opencode)"
+    echo -e "  ${CYAN}--tool${NC} opencode|claude|qwen|gigacode|codex Target CLI tool (default: opencode)"
     echo -e "  ${CYAN}--symlink${NC}                                Use symlinks instead of copies"
     echo -e "  ${CYAN}--mcp${NC}                                    Install MCP server config"
     echo ""
@@ -39,6 +39,7 @@ print_usage() {
     echo -e "  ${DIM}./install.sh --mcp${NC}"
     echo -e "  ${DIM}./install.sh --tool claude${NC}"
     echo -e "  ${DIM}./install.sh --tool gigacode${NC}"
+    echo -e "  ${DIM}./install.sh --tool codex${NC}"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -67,8 +68,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "$TOOL" != "opencode" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" ]]; then
-    echo -e "${RED}Error:${NC} --tool must be 'opencode', 'claude', 'qwen', or 'gigacode'"
+if [[ "$TOOL" != "opencode" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" && "$TOOL" != "codex" ]]; then
+    echo -e "${RED}Error:${NC} --tool must be 'opencode', 'claude', 'qwen', 'gigacode', or 'codex'"
     exit 1
 fi
 
@@ -84,6 +85,9 @@ case "$TOOL" in
         ;;
     gigacode)
         CONFIG_DIR="$HOME/.gigacode"
+        ;;
+    codex)
+        CONFIG_DIR="$HOME/.agents"
         ;;
 esac
 
@@ -170,7 +174,21 @@ if [ "$INSTALL_MCP" = true ]; then
       \"args\": [\"$MCP_DIST\"]
     }"
 
-        if [ "$TOOL" = "claude" ]; then
+        if [ "$TOOL" = "codex" ]; then
+            if command -v codex >/dev/null 2>&1; then
+                MCP_LIST="$(codex mcp list --json 2>/dev/null || true)"
+                if printf '%s\n' "$MCP_LIST" | grep -Eq '"name"[[:space:]]*:[[:space:]]*"jimmer-docs"'; then
+                    log_skip "jimmer-docs already registered in codex user config"
+                else
+                    codex mcp add jimmer-docs -- node "$MCP_DIST" >/dev/null 2>&1 \
+                        && log_install "registered jimmer-docs (codex mcp)" \
+                        || log_error "codex mcp add failed. Add manually: codex mcp add jimmer-docs -- node $MCP_DIST"
+                fi
+            else
+                log_info "codex CLI not found. Register manually:"
+                echo -e "    ${DIM}codex mcp add jimmer-docs -- node $MCP_DIST${NC}"
+            fi
+        elif [ "$TOOL" = "claude" ]; then
             # Claude Code reads global (user-scope) MCP from ~/.claude.json, not
             # ~/.claude/.mcp.json. Register via the official CLI so it lands in the
             # right place and survives config-format changes.

@@ -1,7 +1,6 @@
 ---
 name: jimmer-config
-description: |
-  Use when choosing or locating a Jimmer configuration key in application.yml / properties — where to enable SQL logging (show-sql), validation, triggers, batch sizes, default pagination, save-returning, entity cache, or client / OpenAPI generation. Registry of every jimmer.* (Spring Boot) and quarkus.jimmer.* (Quarkus) key. For Quarkus setup and dependencies see jimmer-quarkus.
+description: Find and verify Jimmer configuration names, defaults and build/runtime scope for Spring Boot or the unified Quarkus module; diagnose ignored keys and mismatched defaults.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -9,97 +8,26 @@ metadata:
 
 # Jimmer Configuration Keys
 
-One key set for both frameworks — both map onto the same sql-client builder options:
+1. Identify the resolved runtime and framework integration. Quarkus here means `sleepkqq/jimmer/project/jimmer-quarkus`.
+2. Find the option in that integration's config class and check its default, datasource scope and build-time/runtime phase. A SQL-client builder method does not prove that a framework exposes a matching property.
+3. Change the smallest relevant key; verify effective behavior on startup or with an SQL/cache test. A build-time key requires rebuilding the application.
 
-- Spring Boot: `jimmer.<key>`
-- Quarkus (quarkus-jimmer extension): `quarkus.jimmer.<key>`; named datasource → `quarkus.jimmer.<datasource-name>.<key>`
+## High-impact differences
 
-Markers: **(Q)** = quarkus-jimmer addition, **(S)** = Spring-starter only. Unmarked keys exist in both. Source of truth per framework: `io.quarkiverse.jimmer.runtime.cfg.*` config classes / Jimmer doc spring appendix.
+- New trigger configurations use `BINLOG_ONLY`; `TRANSACTION_ONLY` and `BOTH` are deprecated. CDC must actually deliver changes before event-driven caching is safe.
+- Quarkus constraint defaults: `constraint-violation-translatable=false`, `sql-state-exception-translator=true`. Do not import Spring's default into this module.
+- Quarkus `database-validation-mode` replaces deprecated nested `database-validation.mode`.
+- Only datasource-scoped keys accept a datasource name. `language`, cache configuration and validation are not blindly replicated under each datasource.
+- `quarkus.jimmer.cache.guard.enabled` requires one application-owned `CacheReadiness`; it does not install CDC.
 
-## Core
+## Reference Routing
 
-| Key | Default | Meaning |
-|---|---|---|
-| `enable` **(Q)** | `true` | master switch |
-| `active` **(Q)**, per-ds | ds active | enable Jimmer for a specific datasource |
-| `language` | `java` | `java` \| `kotlin` — mandatory for Kotlin |
-| `dialect` | derived | dialect class; Quarkus derives from `quarkus.datasource.db-kind` |
-| `micro-service-name` | — | remote associations service name |
-| `default-schema` | — | schema qualifier |
-| `eager-metadata-initialization` **(Q)** | `true` | build metadata + SqlClient on the startup thread — prevents scheduler-vs-lazy-init deadlock; disable only if the app must start without a reachable DB |
+[Key guide](GUIDE.md): read only the matching section. Defaults are reference points; installed configuration source wins.
 
-## SQL logging
-
-| Key | Default | Meaning |
-|---|---|---|
-| `show-sql` / `pretty-sql` / `inline-sql-variables` | `false` | verbose SQL log (inline affects log text only, execution keeps JDBC params) |
-| `compact-sql-log` **(Q)** | `false` | one line per statement under `jimmer.sql` (`SQL SELECT … (20 rows) \| 12ms [QUERY]`); overrides `show-sql` |
-| `executor-context-prefixes` | — | package/class prefixes whose stack frames are appended to SQL logs |
-
-## Validation and triggers
-
-| Key | Default | Meaning |
-|---|---|---|
-| `database-validation-mode` | `NONE` | `NONE` \| `WARNING` \| `ERROR` (`database-validation.mode` nested form: deprecated in Quarkus; `.catalog`/`.schema` **(S)**) |
-| `trigger-type` | `BINLOG_ONLY` | `BINLOG_ONLY` \| `TRANSACTION_ONLY` \| `BOTH` |
-| `transaction-cache-operator-fixed-delay` | `5s` / `5000` ms | retry interval of queued cache invalidations under TRANSACTION_ONLY |
-
-## Query and fetching
-
-| Key | Default | Meaning |
-|---|---|---|
-| `default-reference-fetch-type` | `SELECT` | `SELECT` \| `JOIN_IF_NO_CACHE` \| `JOIN_ALWAYS` |
-| `max-join-fetch-depth` | `3` | join-fetch nesting cap |
-| `default-batch-size` / `default-list-batch-size` | `128` / `16` | fetcher batch sizes (reference / collection) |
-| `in-list-padding-enabled` / `expanded-in-list-padding-enabled` | `false` | pad IN lists to stabilize SQL plans |
-| `offset-optimizing-threshold` | `MAX` | deep-pagination rewrite threshold |
-| `reverse-sort-optimization-enabled` | `false` | fetch tail pages by reversed sort |
-| `jdbc.default-fetch-size` / `jdbc.default-query-timeout` | — | JDBC defaults for queries |
-
-## Save commands
-
-| Key | Default | Meaning |
-|---|---|---|
-| `id-only-target-checking-level` | `NONE` | verify short association ids on save (`NONE` \| `FAKE` \| `ALL`) |
-| `save-command-pessimistic-lock` **(S)** | `false` | save-command lookup queries take pessimistic locks |
-| `default-dissociation-action-checkable` | `true` | validate dissociation configs |
-| `dissociation-logical-delete-enabled` | `false` | dissociate children via logical delete |
-| `max-command-join-count` | `2` | joins allowed inside save-command lookups |
-| `mutation-transaction-required` | `false` | mutations must run inside a transaction |
-| `target-transferable` | `false` | children may switch parents on save |
-| `explicit-batch-enabled` / `dumb-batch-acceptable` | `false` | JDBC batch tuning knobs |
-| `constraint-violation-translatable` | `true` | translate DB constraint errors into typed SaveException |
-| `default-type-change-allowed` | `false` | allow draft type switch |
-| `default-save-returning-enabled` | `true` | materialize save results via DML `RETURNING` where the dialect supports it |
-| `default-save-result-reads-all-properties` | `false` | read requested result values back from the DB (triggers/generated columns) instead of copying from the saved object |
-| `is-foreign-key-enabled-by-default` | `true` | undeclared FKs treated as real constraints |
-| `default-enum-strategy` | `NAME` | enum column mapping (`NAME` \| `ORDINAL`) |
-
-## Entity cache (Q) — `quarkus.jimmer.cache.*`
-
-Spring wires caches programmatically (CacheFactory bean — see jimmer-caching); the Quarkus extension configures them declaratively:
-
-| Key | Default | Meaning |
-|---|---|---|
-| `log-operations` | `false` | one-line cache op log under `jimmer.cache` (GET tier hits / SET / DELETE) |
-| `entities[].type` | — | entity simple name; absent = not cached |
-| `entities[].mode` | `REMOTE_ONLY` | `LOCAL_ONLY` \| `REMOTE_ONLY` \| `FULL` (Caffeine in front of Redis) |
-| `entities[].remote-ttl` / `local-ttl` | `PT30M` / `PT30S` | tier TTLs; short local TTL is the backstop for a missed cross-instance invalidation |
-| `entities[].local-max-size` | `10000` | Caffeine cap |
-| `entities[].cache-associations` | `true` | `false` disables the entity's association cache (object cache stays) — for children shared by two cached parents where one inverse side can't be evicted |
-| `entities[].random-percent` | `25` | remote-TTL jitter against synchronized mass expiry |
-
-## Error translation and generated clients
-
-| Key | Default | Meaning |
-|---|---|---|
-| `error-translator.disabled` | `false` | client error mapping off |
-| `error-translator.http-status` | `500` | unified error status |
-| `error-translator.debug-info-supported` | `false` | include exception details in client errors — never in prod |
-| `error-translator.debug-info-max-stack-trace-count` | `0`(S)/`MAX`(Q) | stacktrace lines in client errors |
-| `client.uri-prefix` **(Q)** | — | prefix for generated client endpoints |
-| `client.ts.path` / `api-name` / `indent` / `mutable` | — / `Api` / `4` / `false` | generated TypeScript client |
-| `client.ts.anonymous` **(S)** | `false` | anonymous TS types |
-| `client.ts.null-render-mode` / `is-enum-ts-style` **(Q)** | `UNDEFINED` / `false` | TS null rendering / enum style |
-| `client.openapi.path` / `ui-path` / `ref-path` / `properties.*` **(Q)** | `/openapi.yml` / `/openapi.html` / — | OpenAPI document, UI page, info/servers/securities/components |
-| `client.java-feign.*` **(S)** | — | generated Spring Cloud Feign client |
+- Core
+- SQL logging
+- Validation and triggers
+- Query and fetching
+- Save commands
+- Entity cache (Q) — `quarkus.jimmer.cache.*`
+- Error translation and generated clients

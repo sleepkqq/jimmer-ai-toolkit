@@ -1,7 +1,6 @@
 ---
 name: jimmer-debug
-description: |
-  Use when a Jimmer operation throws or misbehaves — errors such as NeitherIdNorKey, CannotDissociateTarget, UnloadedPropertyException, optimistic-lock failures, constraint violations, or generated-code / fetcher-loading problems. Diagnosis workflow for save mode, dissociation, key, loading, ExceptionTranslator, and QueryReason auditing.
+description: Diagnose Jimmer save exceptions, rejected mutations, unloaded properties, generated-code failures, SQLState translation and QueryReason fallbacks from a concrete failure.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
@@ -13,7 +12,7 @@ Use for Jimmer save/query/runtime/generated-code errors.
 
 ## Workflow
 
-1. Collect exception class/message, entity, save/query code, SQL logs, and `QueryReason` if present.
+1. Collect resolved runtime/processor coordinates, dialect/framework, exception class/message, entity, save/query code, SQL logs, acceptance flags and `QueryReason` if present. Do not assume every unsuccessful write throws.
 2. Match quick table.
 3. Inspect affected entity path, especially `exportedPath` in `SaveException`.
 4. Check `@Key`, `@KeyUniqueConstraint`, `@OnDissociate`, nullability, FK constraints, and loaded properties.
@@ -29,22 +28,25 @@ scripts/compile.sh /path/to/project
 
 | Error | First check |
 |---|---|
-| `NeitherIdNorKey` | child needs `@Id`, `@Key`, or `VIOLENTLY_REPLACE` |
-| `CannotDissociateTarget` | missing `@OnDissociate` and matching DB FK action |
-| `NotUnique` | key/unique constraint conflict — catch or translate, or switch to `UPSERT` |
+| `NeitherIdNorKey` | supply intended ID/key; insert-only/destructive replacement only if that matches the write contract |
+| `CannotDissociateTarget` | inspect loaded collection, associated mode and `@OnDissociate` on the owning child reference |
+| `NotUnique` | key/unique constraint conflict — preserve create-vs-upsert intent; do not silently change INSERT_ONLY to UPSERT |
 | `NoKeyProp` / `NoVersion` | save matched by key without `@Key`, or optimistic mode without `@Version` |
 | `IllegalTargetId` | referenced association id does not exist (`setAutoIdOnlyTargetChecking`) |
-| `TargetIsNotTransferable` | child moved to another parent — `setTargetTransferMode(prop, ALLOWED)` |
+| `TargetIsNotTransferable` | child moved to another parent — authorize the transition before enabling transfer |
 | `IncompleteProperty` | partial embeddable/composite value in save |
 | `OptimisticLockError` | include `@Version`, re-read, or handle conflict |
 | `KEY_UNIQUE_CONSTRAINT_REQUIRED` (QueryReason) | add `@KeyUniqueConstraint` and DB unique constraint |
 | `UnloadedPropertyException` | add field to View/Fetcher or guard with `ImmutableObjects.isLoaded()` |
+| `isAccepted=false` | skipped INSERT_IF_ABSENT, failed update condition, or incompatible subtype; not automatically an exception |
+| Unsupported mutation with transaction triggers | `TRANSACTION_ONLY`/`BOTH` are deprecated; migrate listeners/caches to BINLOG_ONLY plus actual CDC |
+| Missing Draft/Fetcher/DTO classes | aligned runtime + APT/KSP, source sets, processor execution and Jandex visibility for Quarkus |
 
 ## Common Diagnoses
 
 `NeitherIdNorKey`: save mode must identify child records. Add natural `@Key`, pass id, or use `AssociatedSaveMode.VIOLENTLY_REPLACE` for delete-all/reinsert semantics.
 
-`CannotDissociateTarget`: `REPLACE` found DB children absent from new collection. Add `@OnDissociate(DissociateAction.DELETE)` or `SET_NULL` and align DB FK action.
+`CannotDissociateTarget`: `REPLACE` found DB children absent from a loaded new collection. Confirm replacement was intended, then set `@OnDissociate(DELETE)` or nullable `SET_NULL` on the owning reference. The inverse collection cannot carry the annotation; database ON DELETE is a separate policy.
 
 `UnloadedPropertyException`: generated immutable object has unloaded field. Query must fetch it via View/Fetcher, or code must test loaded state.
 
@@ -54,7 +56,9 @@ Unexpected extra SELECTs before save: read `QueryReason` in SQL log. `INTERCEPTO
 
 ## ExceptionTranslator
 
-Translate raw constraint violations into domain errors instead of catching SQL exceptions:
+Identify the configured translation path before choosing the exception type. In the unified Quarkus module, `constraint-violation-translatable=false` and `sql-state-exception-translator=true` default to SQLState-based `JimmerDataAccessException` subtypes. A `SaveException.NotUnique` translator is for the typed constraint-investigation path; it is not guaranteed to receive the default Quarkus error.
+
+When typed constraint translation is enabled:
 
 ```java
 @ApplicationScoped // or @Component; also: sqlClient builder / per-command addExceptionTranslator
@@ -74,3 +78,5 @@ Generic type argument is mandatory. Registration: per save command (highest prio
 ## Rule
 
 Fix root annotation/query/save-mode mismatch. Do not hide Jimmer errors with broad catch blocks or re-query loops.
+
+Verify the original failing operation and one neighboring mode/path; do not weaken ownership, uniqueness or optimistic-lock checks to make the exception disappear. Sources: [save investigation](https://babyfish-ct.github.io/jimmer-doc/docs/mutation/save-command/investigation), [Quarkus exceptions](https://github.com/sleepkqq/jimmer/tree/main/project/jimmer-quarkus/runtime/src/main/java/io/quarkiverse/jimmer/runtime/exception), [save acceptance](https://babyfish-ct.github.io/jimmer-doc/docs/mutation/save-command/returning).

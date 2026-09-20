@@ -1,7 +1,6 @@
 ---
 name: jimmer-caching
-description: |
-  Use when adding or debugging Jimmer's entity cache — object / association / calculated cache kinds, wiring CacheFactory + ChainCacheBuilder (Caffeine L1 + Redis L2), cache invalidation and BinLog-vs-Transaction trigger consistency, per-user multi-view caches with SubKey, or diagnosing stale / abandoned caches. Keywords: entity cache, cache over Redis, L2 cache.
+description: Configure Jimmer object, association and resolver caches; migrate deprecated transaction triggers to CDC; diagnose stale or filter-sensitive cache entries and Quarkus Redis readiness.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -9,40 +8,43 @@ metadata:
 
 # Jimmer Caching
 
-ORM-level entity cache, distinct from any application-level cache (`@CacheResult` etc.). Invalidation is driven by Jimmer triggers — never hand-invalidate entity caches.
+Jimmer ORM caches assemble entity graphs; they are not arbitrary query-result or application caches. Check the resolved ORM version and cache provider first. Quarkus-specific details target the unified `sleepkqq/jimmer` module.
+
+## Start with the invalidation path
+
+**Do not configure `TRANSACTION_ONLY` or `BOTH` for new work. Both are deprecated.** Migrate away from transaction triggers; advanced mutations may reject any mode other than `BINLOG_ONLY`. Treat them as a removal/migration risk: upstream has not specified a removal release. Older documentation still recommends `BOTH`; the current `TriggerType` source supersedes that advice.
+
+Treat the strategy and its prerequisites as one recommendation: use `BINLOG_ONLY` **with committed-change delivery**, replacing deprecated transaction-trigger modes. The enum is not a CDC installer.
+
+```text
+all DB writers → committed row/middle-table events → Jimmer BinLog
+             → required cache invalidations succeed → acknowledge/checkpoint
+```
+
+Trace each arrow in the application's real integration before enabling caching. Old/new row images must describe the changes needed by entity and association invalidation. If an invalidation fails, propagate failure and retry/redeliver; acknowledging first can permanently lose it. TTL is only a fallback.
+
+| State | Safe read policy | Recovery evidence |
+|---|---|---|
+| CDC disconnected or catch-up unknown | Bypass affected caches, including fills | Source checkpoint/catch-up and fresh cache namespace or coordinated reset |
+| Redis subscription untrusted | Built-in Quarkus chains bypass reads/fills | Subscription recovery plus L1 reset; not proof of CDC freshness |
+| Cache delete fails | Do not acknowledge the event | Successful retry; duplicate processing tolerated |
+| Healthy pipeline | Use configured cache tiers | Cross-writer, cross-instance entity and association tests |
+
+A migration must account for existing transaction listeners and warm entries as well as changing the setting. Report the reason for the replacement and how cached traffic becomes safe; a successful startup or Redis PING is insufficient. Verify two instances, an external writer, consumer restart, replay, and a load held across invalidation.
 
 ## Cache kinds
 
 | Kind | Key → Value | Created by | Invalidation |
 |---|---|---|---|
-| Object cache | `Type-id` → entity row | `createObjectCache(type)` | automatic on DML |
-| Association cache | `Type.prop-ownerId` → target id(s) | `createAssociatedIdCache` / `createAssociatedIdListCache` | automatic on DML (both FK sides / middle table) |
+| Object cache | `Type-id` → entity row | `createObjectCache(type)` | on delivered entity-change events |
+| Association cache | `Type.prop-ownerId` → target id(s) | `createAssociatedIdCache` / `createAssociatedIdListCache` | on delivered FK/middle-table events; verify all affected directions |
 | Calculated cache | `Type.prop-id` → resolver value | `createResolverCache` | user-assisted (resolver reacts to trigger events) |
 
 Association + calculated together = "property caches" — only they can be multi-view; object cache is always single-view.
 
 ## Wiring
 
-Implement `CacheFactory` (Java) / `KCacheFactory` (Kotlin); build each cache with `ChainCacheBuilder` — one `.add(binder)` per tier, any depth (two tiers is the norm):
-
-```kotlin
-override fun createObjectCache(type: ImmutableType): Cache<*, *>? =
-    ChainCacheBuilder<Any, Any>()
-        .add(CaffeineValueBinder.forObject(type).maximumSize(512).duration(10.seconds).build())
-        .add(RedisValueBinder.forObject(type).redis(connectionFactory).objectMapper(objectMapper).duration(10.hours).build())
-        .build()
-```
-
-Returning `null` from a `create*Cache` method = that type/prop is simply uncached (per-type opt-out lives here). Register via framework config (Spring bean) or `setCacheFactory` on the sql client builder.
-
-## Consistency — trigger-driven invalidation
-
-| trigger-type | Mechanism | Guarantees / requirements |
-|---|---|---|
-| `BINLOG_ONLY` / `BOTH` (recommended by docs) | consume DB binlog from an MQ, call Jimmer's `BinLog` API → fires all trigger callbacks incl. invalidation | commit MQ offset only after the BinLog call → at-least-once invalidation; catches out-of-band DB writes too |
-| `TRANSACTION_ONLY` | invalidations queued in the auto-created `JIMMER_TRANS_CACHE_OPERATOR` table inside the SAME local transaction; a `Flush` runs right after commit and periodically retries leftovers | only writes through Jimmer's API invalidate; requires an explicit dialect (DefaultDialect throws); retry interval `jimmer.transaction-cache-operator-fixed-delay` (ms) |
-
-Either way: cache deletion is guaranteed to eventually succeed — do not add manual eviction "just in case".
+Use the installed provider's `CacheFactory`/`KCacheFactory` and `ChainCacheBuilder`; returning `null` from a factory method opts that type/property out. Spring Redis and Quarkus Redis binders have different constructors/builders: do not transplant a `RedisConnectionFactory` example into Quarkus. In the unified Quarkus module prefer its existing declarative `quarkus.jimmer.cache.entities` configuration; read [Quarkus cache lifecycle](references/quarkus.md) for guard, reconnect, timeouts, or custom factories.
 
 ## Multi-view caches — user filters
 
@@ -51,6 +53,7 @@ A user-defined global filter on an entity makes every association cache TARGETIN
 - Such properties either stay uncached or become multi-view — a single-view cache configured for them is IGNORED (Jimmer reports the reason via the abandoned-cache callback; wire it up and read it instead of guessing).
 - Multi-view storage adds a `SubKey` dimension: `Key → SubKey → Value`, where SubKey encodes the filter arguments (e.g. `{"tenant":"a"}`), so each client view caches separately.
 - The filter must implement the cacheable-filter contract (provide its SubKey parameters) for its target's property caches to stay cacheable.
+- Include every value that affects visibility in the sorted parameter map; also implement the event-affecting/invalidation contract. Test the same owner ID under two filter contexts. A plain user filter is not automatically cacheable.
 
 Cost model: multi-view multiplies entries per key by the number of distinct filter views — reserve it for genuinely per-view data (tenancy, permissions), keep hot shared data single-view.
 
@@ -58,5 +61,11 @@ Cost model: multi-view multiplies entries per key by the number of distinct filt
 
 - Calculated (`@Transient` resolver) caches don't invalidate themselves — the resolver must subscribe to relevant trigger events and evict its own entries.
 - Object cache serves id-based loads and fetcher joins; queries by arbitrary predicates still hit the DB — the cache accelerates shape assembly, not WHERE clauses.
-- Bulk operations under an active cache/trigger degrade to row-aware plans so events can fire (see jimmer-performance: `CANNOT_DELETE_DIRECTLY`).
+- With `BINLOG_ONLY`, out-of-band SQL can be covered by CDC; cache presence alone does not imply a row-aware DML plan. Inspect `QueryReason` rather than reviving deprecated transaction triggers.
 - Redis tier: helper binders (`RedisValueBinder`, tracking variants) handle serialization via the provided `ObjectMapper` — entity types must stay Jackson-serializable.
+
+## Sources
+
+- [TriggerType](https://github.com/babyfish-ct/jimmer/blob/main/project/jimmer-sql/src/main/java/org/babyfish/jimmer/sql/event/TriggerType.java)
+- [Cache consistency](https://babyfish-ct.github.io/jimmer-doc/docs/cache/consistency) — its transaction-trigger recommendation is outdated; retain the delivery/acknowledgement mechanism only.
+- [Multi-view filters](https://babyfish-ct.github.io/jimmer-doc/docs/cache/multiview-cache/user-filter)

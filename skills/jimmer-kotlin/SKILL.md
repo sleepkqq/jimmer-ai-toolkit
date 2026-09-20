@@ -1,7 +1,6 @@
 ---
 name: jimmer-kotlin
-description: |
-  Use when doing Jimmer in Kotlin specifically — Kotlin entity interfaces, KRepository, the Kotlin query DSL and saveCommand DSL, DraftInterceptor vs DraftPreProcessor (e.g. an interceptor not firing on save), KSP setup, and Kotlin config.
+description: Implement Kotlin Jimmer entity/draft and query/save DSL code; resolve null-aware predicates, KSP generation, KRepository contracts, and interceptor versus preprocessor behavior.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -9,93 +8,22 @@ metadata:
 
 # Jimmer Kotlin
 
-Use when target project uses Kotlin with Jimmer.
+Read the Kotlin compiler/KSP setup and one neighboring generated DSL use before editing. Keep runtime and processor coordinates aligned; for Quarkus use the unified fork described in `jimmer-quarkus`.
 
-## Entity
+- Entity properties are `val`; Kotlin `T?` expresses nullability, not whether a property is loaded. Use the loaded-state API before reading an optional projection.
+- Prefer the project's generated entity DSL; preserve partial shape and association references. Use generated input `toEntity()` to retain PATCH presence.
+- Queries use entity `KClass`, `table`, and typed operators such as ``eq?``/``like?``. Predicate skipping is not `IS NULL`; check empty input behavior intentionally.
+- Save result consumption must honor `isAccepted`; request a Fetcher/View for a different output shape. `setVersionMode(ASSIGNMENT)` is root-only; use `jimmer-save-modes` for external-version policies.
+- Keep a `DraftInterceptor` when logic needs original values; a `DraftPreProcessor` can avoid a lookup only for unconditional input/default logic.
 
-```kotlin
-@Entity
-interface DomainObject {
-    @Id
-    @GeneratedValue(generatorType = UUIDIdGenerator::class)
-    val id: UUID
-    val name: String
+Compile through the application's actual KSP task and test the affected null/loaded-state behavior. Do not fix missing generated code by editing generated files.
 
-    @ManyToOne
-    @JoinColumn(name = "related_object_id")
-    val relatedObject: RelatedObject
-}
-```
+## Reference Routing
 
-Nullability via Kotlin `T?`, not annotations.
+[Domain guide](GUIDE.md): read the section relevant to the behavior being changed, not the whole file by default. Existing scripts and relative resources remain beside this skill.
 
-## Creation DSL
-
-Use generated DSL:
-
-```kotlin
-val domainObject = DomainObject {
-    name = "value"
-    relatedObject = RelatedObject { id = relatedObjectId }
-}
-```
-
-Do not use old `new(Entity::class).by { }` style.
-
-## KRepository Query
-
-```kotlin
-interface DomainObjectRepository : KRepository<DomainObject, UUID> {
-    fun <V : View<DomainObject>> search(
-        nameQuery: String?,
-        page: Int,
-        size: Int,
-        viewType: KClass<V>,
-    ): Page<V> =
-        sql.createQuery(DomainObject::class) {
-            where(table.name `like?` nameQuery)
-            orderBy(table.createdAt.desc())
-            select(table.fetch(viewType))
-        }.fetchPage(page, size)
-}
-```
-
-## Kotlin Rules
-
-- `table` supports collection joins; no `TableEx` needed.
-- Null-safe operators: ``eq?``, ``ne?``, ``gt?``, ``ge?``, ``lt?``, ``le?``, ``like?``, ``valueIn?`` — null (and empty string for like) skips the predicate.
-- Use `KClass<V>` instead of `Class<V>`.
-- Save command options via DSL lambda: `sql.save(entity) { setMode(...); setAssociatedModeAll(...) }`; save view result uses `.modifiedView`.
-- Config must set `jimmer.language: kotlin` (or `quarkus.jimmer.language: kotlin`).
-- KSP dependency must be present; DTO/draft generation runs through KSP.
-
-## DraftInterceptor vs DraftPreProcessor
-
-`DraftInterceptor` forces an existence-check SELECT before save (`QueryReason.INTERCEPTOR`) and disables SQL-level upsert — use it only when logic needs `original`. For unconditional defaults prefer `DraftPreProcessor` (no query, keeps upsert fast path).
-
-```kotlin
-@ApplicationScoped
-class ModelDraftInterceptor : DraftInterceptor<Model, ModelDraft> {
-    override fun beforeSave(draft: ModelDraft, original: Model?) {
-        draft.updatedAt = Instant.now()
-        if (original == null && !isLoaded(draft, Model::version)) {
-            draft.version = 0
-        }
-    }
-
-    // batch variant to avoid N+1 in interceptor logic:
-    // override fun beforeSaveAll(items: Collection<DraftInterceptor.Item<Model, ModelDraft>>)
-
-    // props of `original` to load beyond id/key:
-    // override fun dependencies(): Collection<TypedProp<Model, *>>
-}
-```
-
-```kotlin
-@ApplicationScoped
-class ModelPreProcessor : DraftPreProcessor<ModelDraft> {
-    override fun beforeSave(draft: ModelDraft) {
-        if (!isLoaded(draft, Model::createdAt)) draft.createdAt = Instant.now()
-    }
-}
-```
+- Entity
+- Creation DSL
+- KRepository Query
+- Kotlin Rules
+- DraftInterceptor vs DraftPreProcessor

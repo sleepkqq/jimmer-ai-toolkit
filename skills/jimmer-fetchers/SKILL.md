@@ -1,7 +1,6 @@
 ---
 name: jimmer-fetchers
-description: |
-  Use when shaping what a query loads via the Fetcher API — choosing fields and nested objects, ReferenceFetchType, deciding View vs Fetcher, converting Input DTOs, or fixing N+1 caused by association loading. Generated-code loading patterns and field-level fetch config. For query structure and pagination see jimmer-query; for save-vs-requery cost see jimmer-performance.
+description: Define Jimmer Fetcher/View read shapes, loaded-state boundaries, batched associations and reference fetch strategies; diagnose N+1 loops or stream-incompatible graph loads.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -9,7 +8,7 @@ metadata:
 
 # Jimmer Fetchers
 
-Use for runtime field selection, generated classes, View-vs-Fetcher decisions, and N+1 prevention.
+Read the caller's required fields and installed generated API first. A Jimmer object can be non-null yet have unloaded properties; accessing one throws rather than triggering lazy loading.
 
 ## View vs Fetcher
 
@@ -20,7 +19,7 @@ Use for runtime field selection, generated classes, View-vs-Fetcher decisions, a
 | Runtime/dynamic field set | Fetcher |
 | GraphQL-style selection | Fetcher |
 
-Default to View DTOs. Use Fetcher only when fields vary at runtime.
+Use a View when a named static boundary helps the API. A reusable static Fetcher is equally valid for entity-returning code; dynamic selection is not its only purpose. Preserve the project's established contract instead of creating a DTO for every query.
 
 ## Input DTO Rule
 
@@ -39,11 +38,11 @@ DOMAIN_OBJECT_FETCHER
     .relatedObject(RELATED_OBJECT_FETCHER.name());
 ```
 
-Use generated `Fetchers` constants. Do not use `$` references in Java.
+Use the generated style already present: `Fetchers.BOOK_FETCHER` and `BookFetcher.$` are both valid Java APIs.
 
 | Method | Includes |
 |---|---|
-| `allScalarFields()` | non-association properties |
+| `allScalarFields()` | persistent scalar shape; do not assume every formula/transient/large field is included |
 | `allReferenceFields()` | FK associations id-only |
 | `allTableFields()` | scalars + references |
 
@@ -61,6 +60,8 @@ In `.dto` files the same is `!fetchType(JOIN_ALWAYS)`.
 ### Field-level config
 
 Collection/recursive fields accept lambda config: `filter(args -> args.orderBy(...))`, `batch(n)`, `limit(limit, offset)`, `depth(n)` / `recursive(...)` for self-associations.
+
+Bound recursion/fan-out intentionally. A filter can remove a referenced target; verify fetch/nullability semantics, not just join count. `JOIN_ALWAYS` deliberately bypasses the reference cache opportunity; `JOIN_IF_NO_CACHE` makes the choice conditional.
 
 ## Generated Code
 
@@ -83,3 +84,9 @@ jimmer:
   default-batch-size: 128
   default-list-batch-size: 16
 ```
+
+Before tuning, eliminate explicit per-row repository/resolver calls. `stream()` rejects a fetch graph that needs secondary association loading; use a compatible join-only shape or a bounded batch traversal and close the JDBC stream within its transaction.
+
+Verify the loaded shape and SQL count for multiple roots. For save results, use the requested Fetcher/View with acceptance checks; residual associations can still need follow-up queries (`jimmer-save-modes`).
+
+Sources: [fetchers](https://babyfish-ct.github.io/jimmer-doc/docs/query/object-fetcher/), [streaming](https://babyfish-ct.github.io/jimmer-doc/docs/query/usage), [save result fetching](https://babyfish-ct.github.io/jimmer-doc/docs/mutation/save-command/returning).
