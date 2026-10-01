@@ -8,7 +8,7 @@ metadata:
 
 # Entity mapping
 
-Target the official `org.babyfish.jimmer` runtime and APT/KSP **of this release**. Verify both dependency graphs. Do not substitute fork coordinates or examples from `main`.
+Target the coordinates the project resolves for the runtime and APT/KSP, and verify both dependency graphs. Do not mix examples or coordinates from a different Jimmer distribution.
 
 ## Workflow
 
@@ -18,7 +18,7 @@ Target the official `org.babyfish.jimmer` runtime and APT/KSP **of this release*
 
 ## Equivalent Java / Kotlin entities
 
-Use separate source files in **both languages**; KSP in this release rejects multiple immutable/entity/mapped-superclass/embeddable declarations in one Kotlin file. SQL annotations are from `org.babyfish.jimmer.sql`. Java nullability uses `org.jetbrains.annotations.Nullable`.
+Use separate source files in **both languages**; KSP rejects multiple immutable/entity/mapped-superclass/embeddable declarations in one Kotlin file. SQL annotations are from `org.babyfish.jimmer.sql`. Java nullability uses `org.jetbrains.annotations.Nullable`.
 
 ```java
 @Entity
@@ -81,7 +81,7 @@ The database needs `unique(name)`, a nullable `book.store_id` FK and the matchin
 - `@OnDissociate` belongs on the **owning reference**, never on inverse `books`. Actions include `NONE`, `LAX`, `CHECK`, `SET_NULL`, `DELETE`. `SET_NULL` requires nullable FK; `DELETE` removes the dissociated child, not its parent. DB `ON DELETE` is a separate contract.
 - Add reverse navigation only when required. `@ManyToMany`/`@JoinTable` describe middle tables; `@ManyToManyView` is a read-only shortcut through an association entity.
 - Use `@IdView` for FK IDs, `@Default` for an ORM-supplied default and `@Version` for optimistic locking. An unloaded property differs from explicit null or an empty collection.
-- Reuse `@MappedSuperclass` for real shared properties; entity-to-entity polymorphic inheritance is unavailable (`jimmer-inheritance`). `@MapsId` and `@DatabaseDefault` are also unavailable in this release.
+- Reuse `@MappedSuperclass` for real shared properties; entity-to-entity polymorphic inheritance is not supported (`jimmer-inheritance`), and `@MapsId`/`@DatabaseDefault` mappings are not available.
 - Create immutable values through the generated facades: Java `Immutables.createBook(d -> ...)` (APT generates `Immutables`/`Tables`/`TableExes`/`Fetchers` per common package; `BookDraft.$.produce(...)` is the same call in `$` style) and Kotlin `Book { ... }` (KSP; `new(Book::class).by { ... }` is the equivalent older spelling). All of them return the entity (`Book`), never the mutable draft.
 - Repositories are optional. Reuse existing Spring `JRepository` / `KRepository` or direct SQL clients (`jimmer-repositories`).
 

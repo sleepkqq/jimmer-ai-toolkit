@@ -1,6 +1,6 @@
 ---
 name: jimmer-quarkus
-description: Establish the integration boundary for Jimmer on Quarkus; verify separately versioned extension compatibility instead of using unavailable official or newer fork APIs.
+description: Integrate Jimmer with Quarkus through the application's installed extension; verify its coordinates, CDI/transaction wiring and configuration keys before suggesting APIs.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -8,11 +8,11 @@ metadata:
 
 # Quarkus integration boundary
 
-**Official `babyfish-ct/jimmer` has no Quarkus module.** Its Spring starter is not a Quarkus extension. The later unified `sleepkqq/jimmer` module has different coordinates and APIs and is not part of this release.
+**Quarkus integration comes from a separately versioned extension, not from the Spring starter.** The installed extension is the authority for coordinates, CDI discovery, transactions, native support and configuration keys.
 
 1. Inspect the application's exact Quarkus extension artifact, resolved Jimmer runtime and APT/KSP dependencies. Extension version and Jimmer version are separate.
 2. Read that extension's release source for compatibility, CDI discovery, transactions, native support and configuration keys. If it forces a different Jimmer runtime, it cannot establish an exact release-aligned setup.
-3. Preserve the installed integration when compatible; otherwise identify the missing decision before adding an extension. Do not invent `org.babyfish.jimmer:quarkus-jimmer:<release-version>`, fork repository types, UUIDv7 generators, Redis readiness guards or `quarkus.jimmer.*` defaults.
+3. Preserve the installed integration when it matches; otherwise identify the missing decision before adding another extension. Do not invent `org.babyfish.jimmer:quarkus-jimmer:<release-version>`, repository types, UUIDv7 generators, readiness guards or `quarkus.jimmer.*` keys the extension does not define.
 
 ## Framework-independent core access
 

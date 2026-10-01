@@ -1,6 +1,6 @@
 ---
 name: jimmer-caching
-description: Configure Jimmer object, association and resolver caches with version-correct transaction/binlog triggers, Java/Kotlin factories and multi-view invalidation.
+description: Configure Jimmer object, association and resolver caches with transaction/binlog triggers, Java/Kotlin factories and multi-view invalidation.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -10,9 +10,9 @@ metadata:
 
 ORM caches assemble immutable graphs; they are not arbitrary query-result caches. Identify every database writer and the delivery/invalidation path before enabling caches.
 
-## Trigger policy for this release
+## Trigger policy
 
-`TriggerType` contains `BINLOG_ONLY`, `TRANSACTION_ONLY`, `BOTH`. **Neither transaction mode is deprecated in this release.** Do not apply the deprecation policy from later releases retroactively.
+`TriggerType` contains `BINLOG_ONLY`, `TRANSACTION_ONLY`, `BOTH`. Choose the mode from the real writer topology and the evidence it requires:
 
 | Mode | Required evidence |
 |---|---|
@@ -51,7 +51,7 @@ val client = newKSqlClient {
 }
 ```
 
-This only wires the provider. It does not establish invalidation or Redis connectivity. Framework auto-configuration is preferable when already used. There is no official `quarkus.jimmer.cache.entities` registry/readiness guard in this tag; do not copy the later fork's settings.
+This only wires the provider. It does not establish invalidation or Redis connectivity. Framework auto-configuration is preferable when already used.
 
 ## Filter-sensitive caches
 

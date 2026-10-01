@@ -40,9 +40,9 @@ Detailed syntax lives in `GUIDE.md` or `references/`; each installed skill ident
 its release in frontmatter. Topic descriptions above summarize the newer set;
 older releases explain supported alternatives where an API is absent.
 
-Trigger policy is version-specific: `TRANSACTION_ONLY` and `BOTH` are **not
-deprecated in 0.9.111**, but are deprecated in 0.12.2. `BINLOG_ONLY` requires a
-real delivery/invalidation path when used for cache consistency.
+`BINLOG_ONLY` requires a real delivery/invalidation path when used for cache
+consistency. Skills describe the usage that fits their release instead of a
+cross-release deprecation changelog.
 
 ```text
 versions/

@@ -10,7 +10,7 @@ metadata:
 
 1. Establish shape, predicates, cardinality, stable ordering and whether the caller needs an exact total. Reuse an existing repository operation if it expresses the whole result.
 2. Choose an explicit View or Fetcher. A to-many join can multiply root rows; for membership prefer `exists` over joining/filtering every child.
-3. Use `fetchPage(pageIndex, pageSize)` for a total, `fetchSlice(limit, offset)` for has-more (`isTail`), `exists()` for a boolean. Include an ID tie-breaker.
+3. Use `fetchPage(pageIndex, pageSize)` for a total, `fetchSlice(limit, offset)` for has-more (`isTail`), `exists()` for a boolean. Include an ID tie-breaker. `Page` is `org.babyfish.jimmer.Page` (jimmer-core), not an `sql.ast` type.
 4. Compile via `scripts/compile.sh /path/to/project` and inspect SQL/counts for multiple matching children. Scripts are relative to this skill.
 
 ## Paired search

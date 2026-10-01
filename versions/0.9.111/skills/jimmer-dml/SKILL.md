@@ -1,6 +1,6 @@
 ---
 name: jimmer-dml
-description: Implement Jimmer Java/Kotlin bulk updates, deletes and batched graph writes; handle conditional row counts without unavailable insert-select/upsert-returning APIs.
+description: Implement Jimmer Java/Kotlin bulk updates, deletes and batched graph writes with conditional row counts.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
@@ -8,7 +8,7 @@ metadata:
 
 # Bulk mutations
 
-The official release supports typed `createUpdate` / `createDelete` and graph save batches. It does **not** expose query-derived `createInsert`, `createUpsert`, `createUpdateReturning` or mutation `.returning(...)`. Do not confuse its supported base queries with a query-to-table insert API.
+Use typed `createUpdate` / `createDelete` and graph save batches. Query-derived `createInsert`, `createUpsert`, `createUpdateReturning` and mutation `.returning(...)` are not part of this API; base queries are for reading, not query-to-table inserts.
 
 ## Conditional atomic update
 
@@ -41,7 +41,7 @@ Java `sqlClient.createDelete(Tables.BOOK_TABLE).where(...).execute()` and Kotlin
 
 For existing objects use `saveEntitiesCommand(rows).setMode(SaveMode.INSERT_ONLY).execute()` in Java or `saveEntities(rows) { setMode(SaveMode.INSERT_ONLY) }` in Kotlin. Choose `UPSERT`/`INSERT_IF_ABSENT` only if that conflict policy is required. These are graph mutations, not guaranteed one-statement insert-select operations.
 
-For large copy/import work use bounded read batches plus batch saves if materializing rows is acceptable. A requirement for database-native `INSERT ... SELECT`, constant application memory or returning changed rows may require reviewed parameterized SQL via the project's existing JDBC access. Preserve transaction ownership and cache invalidation; transaction triggers only observe Jimmer-managed mutations, while external/native writes need delivered CDC or another explicit invalidation path. Do not invent a later Jimmer API or silently relax the memory/atomicity contract.
+For large copy/import work use bounded read batches plus batch saves if materializing rows is acceptable. A requirement for database-native `INSERT ... SELECT`, constant application memory or returning changed rows may require reviewed parameterized SQL via the project's existing JDBC access. Preserve transaction ownership and cache invalidation; transaction triggers only observe Jimmer-managed mutations, while external/native writes need delivered CDC or another explicit invalidation path. Do not silently relax the memory/atomicity contract.
 
 Verify stored values, zero-row branch, rollback and affected counts on the actual dialect. For returned full rows, an explicit read in the appropriate transaction/isolation scope may be necessary; counts are not result objects.
 

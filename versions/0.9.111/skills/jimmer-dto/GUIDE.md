@@ -1,6 +1,6 @@
 # DTO language
 
-Use one bound entity per `.dto` file and nested association blocks. Nested generated types are expected; named reusable association DTOs and fragments from newer releases are unavailable.
+Use one bound entity per `.dto` file and nested association blocks; nested generated types are expected. Keep association shapes inside the nested blocks instead of referencing named DTOs.
 
 ## Shapes and property syntax
 
@@ -38,7 +38,7 @@ Apply on `input` type or individual properties. This table concerns optional/nul
 | `dynamic` | Unloaded | Loaded null if nullable |
 | `fuzzy` | Unloaded | Unloaded |
 
-Use `dynamic` for real PATCH null-clearing. `fuzzy` cannot clear nullable state. Non-null collections need `?` when omission is allowed; `[]` remains loaded. Test through Jackson before asserting presence semantics. Standalone Jackson 2 uses `org.babyfish.jimmer.jackson.ImmutableModule`, not the newer `ImmutableModuleV2`/`V3` packages.
+Use `dynamic` for real PATCH null-clearing. `fuzzy` cannot clear nullable state. Non-null collections need `?` when omission is allowed; `[]` remains loaded. Test through Jackson before asserting presence semantics. Standalone Jackson 2 uses `org.babyfish.jimmer.jackson.ImmutableModule`.
 
 ## Specifications
 
@@ -56,6 +56,6 @@ Generated Kotlin DTOs are immutable by default: construct `BookSpec(name = "guid
 
 ## Association configurations
 
-`!where(...)`, `!orderBy(name asc)`, `!filter(FilterClass)`, `!recursion(StrategyClass)`, `!fetchType(SELECT | JOIN_IF_NO_CACHE | JOIN_ALWAYS | AUTO)`, `!limit(n[, offset])`, `!batch(n)`, `!depth(n)` are supported. Compile custom filter types against this version. Bound recursive depth and collection size intentionally.
+`!where(...)`, `!orderBy(name asc)`, `!filter(FilterClass)`, `!recursion(StrategyClass)`, `!fetchType(SELECT | JOIN_IF_NO_CACHE | JOIN_ALWAYS | AUTO)`, `!limit(n[, offset])`, `!batch(n)`, `!depth(n)` are supported. Compile custom filter types against the project's resolved dependency. Bound recursive depth and collection size intentionally.
 
 Sources: [exact grammar](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-dto-compiler/src/main/antlr/org/babyfish/jimmer/dto/compiler/Dto.g4), [DTO compiler](https://github.com/babyfish-ct/jimmer/tree/v0.9.111/project/jimmer-dto-compiler/src/main/java/org/babyfish/jimmer/dto/compiler).

@@ -1,6 +1,6 @@
 ---
 name: jimmer-inheritance
-description: Model shared entity properties with Jimmer Java/Kotlin mapped superclasses and recognize unsupported polymorphic inheritance, discriminators and subtype DTOs.
+description: Model shared entity properties with Jimmer Java/Kotlin mapped superclasses; handle polymorphism through queries and DTOs, not entity inheritance.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: task
@@ -8,9 +8,9 @@ metadata:
 
 # Shared models and inheritance
 
-The official release supports `@MappedSuperclass` property reuse. It does **not** support `@Inheritance(SINGLE_TABLE/JOINED)`, `@Discriminator`, `@DiscriminatorValue`, subtype `forType` fetching, `treatAs` queries, `TypeMatchMode`, type-changing saves or DTO `#types` branches.
+Use `@MappedSuperclass` for property reuse. Polymorphic entity inheritance is not part of the model: `@Inheritance`/`@Discriminator` mappings, subtype `forType` fetching, `treatAs` queries, `TypeMatchMode`, type-changing saves and DTO `#types` branches are not available, so keep polymorphism in queries and DTOs.
 
-Do not produce non-compiling newer annotations. First distinguish common fields from a genuinely polymorphic identity/query requirement.
+Use only annotations that compile in the project. First distinguish common fields from a genuinely polymorphic identity/query requirement.
 
 Java (separate source files):
 
@@ -27,7 +27,7 @@ public interface Book extends Named {
 }
 ```
 
-Kotlin (one model interface per source file, required by this release's KSP):
+Kotlin (one model interface per source file, required by KSP):
 
 ```kotlin
 @MappedSuperclass

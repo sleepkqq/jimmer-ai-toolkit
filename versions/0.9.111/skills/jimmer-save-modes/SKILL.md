@@ -8,7 +8,7 @@ metadata:
 
 # Graph saves
 
-Establish identity, allowed changes, transaction scope and required return shape separately. Target the official release, not newer save APIs.
+Establish identity, allowed changes, transaction scope and required return shape separately. Match the save API used by the project's resolved Jimmer dependencies.
 
 | Root mode | Contract |
 |---|---|
@@ -29,7 +29,7 @@ Root mode does not select child behavior. For loaded collections:
 | `UPDATE` | Update existing targets |
 | `VIOLENTLY_REPLACE` | Clear/reinsert; destructive semantics, extra work and trigger events |
 
-Omitted collection = untouched; `[]` = loaded empty collection. `REPLACE` with `[]` removes links/members; `MERGE` does not clear them. Dissociating a removed child requires a dissociation policy on the owning reference: a nullable owning FK is not enough in this release, because the save detach path treats `NONE` as `CHECK` while `default-dissociation-action-checkable` is `true` and throws `SaveException.CannotDissociateTarget`. Annotate the owning reference with `@OnDissociate(SET_NULL)` (or `DELETE` when the child row should go), or override per command with `setDissociateAction`; owned-child deletion needs the same annotation. Removing many-to-many links does not delete shared targets. Set the mode explicitly when it matters: convenience overloads taking `SaveMode` can default associations to `MERGE`, unlike an unconfigured command's `REPLACE`.
+Omitted collection = untouched; `[]` = loaded empty collection. `REPLACE` with `[]` removes links/members; `MERGE` does not clear them. Dissociating a removed child requires a dissociation policy on the owning reference: a nullable owning FK is not enough: the save detach path treats `NONE` as `CHECK` while `default-dissociation-action-checkable` is `true` and throws `SaveException.CannotDissociateTarget`. Annotate the owning reference with `@OnDissociate(SET_NULL)` (or `DELETE` when the child row should go), or override per command with `setDissociateAction`; owned-child deletion needs the same annotation. Removing many-to-many links does not delete shared targets. Set the mode explicitly when it matters: convenience overloads taking `SaveMode` can default associations to `MERGE`, unlike an unconfigured command's `REPLACE`.
 
 ## Same operation in both languages
 
@@ -53,18 +53,19 @@ val result = sqlClient.save(input) {
 val saved = result.modifiedEntity
 ```
 
-`SimpleSaveResult` / `KSimpleSaveResult` expose modified/original entities and affected counts. **There is no `isAccepted` in this release.** Do not add the newer acceptance protocol or infer whole-graph success from one count. For a specific root use its affected-table count when the driver/operation's semantics permit; test conflicts on the actual dialect.
+`SimpleSaveResult` / `KSimpleSaveResult` expose modified/original entities and affected counts. **There is no acceptance flag**: verify the specific root via its affected-table count when the driver/operation's semantics permit, and test conflicts on the actual dialect.
 
 Java and Kotlin result APIs are not identical:
 
-| API | Java `SimpleSaveResult` | Kotlin `KSimpleSaveResult` | Meaning |
+| API | Java `SimpleSaveResult` | Kotlin `KSimpleSaveResult` | Use |
 |---|---|---|---|
-| `isAccepted` / `getIsAccepted` | Absent | Absent | No acceptance protocol in this release |
-| `isModified` | `result.isModified()` | `result.isModified` | Original and modified immutable entity instances differ; generated IDs/versions/back-references can cause this. Not a persistence-success flag |
-| `isRowAffected` | Absent | `result.isRowAffected` | Exactly `affectedRowCountMap.isNotEmpty()`, including graph effects; not root acceptance |
-| Root-table count | `result.getAffectedRowCount(Book.class)` | `result.affectedRowCount(Book::class)` | Count for this entity table, not the entire graph |
+| Modified entity | `result.getModifiedEntity()` | `result.modifiedEntity` | Saved immutable instance; may be partial, not a full row |
+| Original entity | `result.getOriginalEntity()` | `result.originalEntity` | Pre-save state when the caller needs it |
+| `isModified` | `result.isModified()` | `result.isModified` | Original and modified instances differ (generated IDs, versions and back-references can trigger this); not persistence success |
+| Root-table count | `result.getAffectedRowCount(Book.class)` | `result.affectedRowCount(Book::class)` | Rows changed for this entity table, not the whole graph; zero is meaningful |
+| `isRowAffected` | — | `result.isRowAffected` | `affectedRowCountMap.isNotEmpty()`, including graph effects |
 
-The Kotlin result is a separate interface, not the Java result exposed with property syntax. Do not call Java `getAffectedRowCount(...)` on `KSimpleSaveResult` or pass `Book::class.java` to its native `affectedRowCount` method. Neither `isModified` nor `isRowAffected` can replace the newer acceptance check.
+The Kotlin result is a separate interface, not the Java result exposed with property syntax: call `affectedRowCount(Book::class)`, not Java `getAffectedRowCount(...)`, and do not treat `isModified`/`isRowAffected` as acceptance signals.
 
 ## Result shape
 
@@ -83,7 +84,7 @@ val view = sqlClient.saveCommand(input) {
 }.execute(BookView::class).modifiedView
 ```
 
-Use these for the required successful-save shape; they may run a follow-up fetch. Do not promise newer save-result `RETURNING` optimizations or `setSaveResultReadsAllProperties`. A conflicting `INSERT_IF_ABSENT` is not a general existing-row fetch: do not convert a partial conflict result blindly to a required-ID DTO. If the caller needs the unchanged existing row, use an explicit complete-key lookup and transaction/isolation policy, verified under concurrency. Never replace a strict no-update contract with `UPSERT` merely to retrieve an ID.
+Use these for the required successful-save shape; they may run a follow-up fetch. A conflicting `INSERT_IF_ABSENT` is not a general existing-row fetch: do not convert a partial conflict result blindly to a required-ID DTO. If the caller needs the unchanged existing row, use an explicit complete-key lookup and transaction/isolation policy, verified under concurrency. Never replace a strict no-update contract with `UPSERT` merely to retrieve an ID.
 
 ## Keys and options
 
@@ -96,7 +97,7 @@ Use these for the required successful-save shape; they may run a follow-up fetch
 
 ## Conditional writes
 
-Use `@Version` or `setOptimisticLock` when mismatch must throw a conflict. For a business predicate that should report zero changed rows, use `createUpdate(...).where(...)` and inspect its count (`jimmer-dml`). Include identity and authorization in that predicate. **No `setUpdateWhere`, `VersionMode.ASSIGNMENT`, or save assignment-expression `set(...)` exists here.** Atomic arithmetic belongs in typed bulk update. Updating an externally assigned revision that way needs explicit comparison/assignment in SQL and intentional bypass of graph-save semantics.
+Use `@Version` or `setOptimisticLock` when mismatch must throw a conflict. For a business predicate that should report zero changed rows, use `createUpdate(...).where(...)` and inspect its count (`jimmer-dml`). Include identity and authorization in that predicate. Save assignment expressions, `setUpdateWhere` and `VersionMode` are not part of the graph-save API: atomic arithmetic belongs in typed bulk update. Updating an externally assigned revision that way needs explicit comparison/assignment in SQL and intentional bypass of graph-save semantics.
 
 ## Verify
 

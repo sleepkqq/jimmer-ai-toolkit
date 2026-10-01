@@ -1,6 +1,6 @@
 ---
 name: jimmer-advanced-mappings
-description: Map Jimmer formulas, transient resolvers, logical deletion, embedded/JSON values, ID views and derived associations using version-correct Java/Kotlin APIs.
+description: Map Jimmer formulas, transient resolvers, logical deletion, embedded/JSON values, ID views and derived associations with the generated Java/Kotlin APIs.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -21,7 +21,7 @@ Start with `jimmer-entity` for ownership/nullability. Here every mapping must ag
 | JSON column | `@Serialized` + compatible dialect/Jackson |
 | Batched calculated association/value | `@Transient` + resolver |
 
-This release has **no `@MapsId`, `@DatabaseDefault`, polymorphic entity inheritance or resolver-context overload**. Do not add duplicate physical-column mappings to imitate missing annotations. A shared-PK mapping needs a schema-specific, compiled and round-trip-tested design; do not invent a mapping merely from the column names.
+**`@MapsId`, `@DatabaseDefault`, polymorphic entity inheritance and resolver-context overloads are not available**; do not imitate them with duplicate physical-column mappings. A shared-PK mapping needs a schema-specific, compiled and round-trip-tested design; do not invent a mapping merely from the column names.
 
 Java formula on an entity (`org.babyfish.jimmer.Formula`, not the SQL annotation package):
 
@@ -42,6 +42,6 @@ val displayName: String
 
 Request the formula in the Fetcher/View; Jimmer includes its dependencies. Formula fields are not ordinary writable columns. Kotlin must compile default interface implementations with the project's appropriate JVM-default option.
 
-Verify metadata compilation, selected and omitted shapes, mutation/schema round trip and relevant cache eviction. Jackson 2 uses `org.babyfish.jimmer.jackson.ImmutableModule`; newer suffixed modules do not exist here.
+Verify metadata compilation, selected and omitted shapes, mutation/schema round trip and relevant cache eviction. Jackson 2 uses `org.babyfish.jimmer.jackson.ImmutableModule`.
 
 Source: [release annotations](https://github.com/babyfish-ct/jimmer/tree/v0.9.111/project/jimmer-core/src/main/java/org/babyfish/jimmer/sql).

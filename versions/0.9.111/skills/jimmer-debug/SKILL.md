@@ -22,8 +22,8 @@ Collect exact runtime and processor coordinates, entity/DTO definitions, excepti
 | `UnloadedPropertyException` | Fetcher/View omitted field or partial save/input result |
 | Missing draft/fetcher/DTO | Runtime/APT/KSP alignment, module inputs, actual processor execution |
 | KSP says a file declares several immutable types | Split each model interface into its own Kotlin file |
-| Unknown `isAccepted`, `setUpdateWhere`, `VersionMode` | Example targets a later release; use supported APIs |
-| DTO `fragment`, `fold`, `for`, `#types` rejected | Later grammar; use this release's nested blocks |
+| `isAccepted`, `setUpdateWhere`, `VersionMode`, `returning` appear in code | Not part of the save/bulk API; replace with the result/count forms (`jimmer-save-modes`) and `createUpdate` (`jimmer-dml`) |
+| DTO `fragment`, `fold`, `for`, `#types` rejected | Use `export` plus nested blocks and the documented input modes |
 | Extra save SELECT | Read `QueryReason`, do not guess from statement count alone |
 
 Java loaded-state check:
@@ -46,10 +46,10 @@ Fetching the required shape at the query boundary is usually better than sprinkl
 
 ## QueryReason and exception handling
 
-`INTERCEPTOR` means original-state logic required preselection; use a `DraftPreProcessor` only if it preserves semantics. `TRIGGER` is expected for transaction-trigger needs; those modes are not deprecated in this release. `KEY_UNIQUE_CONSTRAINT_REQUIRED`, `NULL_NOT_DISTINCT_REQUIRED`, `NO_MORE_UNIQUE_CONSTRAINTS_REQUIRED`, `UPSERT_NOT_SUPPORTED`, `OPTIMISTIC_LOCK` explain native-upsert fallbacks. `INVESTIGATE_CONSTRAINT_VIOLATION_ERROR` means diagnostic querying after a real violation.
+`INTERCEPTOR` means original-state logic required preselection; use a `DraftPreProcessor` only if it preserves semantics. `TRIGGER` is expected for transaction-trigger needs. `KEY_UNIQUE_CONSTRAINT_REQUIRED`, `NULL_NOT_DISTINCT_REQUIRED`, `NO_MORE_UNIQUE_CONSTRAINTS_REQUIRED`, `UPSERT_NOT_SUPPORTED`, `OPTIMISTIC_LOCK` explain native-upsert fallbacks. `INVESTIGATE_CONSTRAINT_VIOLATION_ERROR` means diagnostic querying after a real violation.
 
-Spring defaults `constraint-violation-translatable=true`. Typed `SaveException` handling differs from raw driver exceptions; inspect which path is actually enabled. `ExceptionTranslator<SaveException.NotUnique>` can return a domain exception, or null when unhandled. Register via the existing DI/client or per-command `addExceptionTranslator`; declare the generic exception type. Do not import later fork `JimmerDataAccessException`/SQLState defaults into the official release.
+Spring defaults `constraint-violation-translatable=true`. Typed `SaveException` handling differs from raw driver exceptions; inspect which path is actually enabled. `ExceptionTranslator<SaveException.NotUnique>` can return a domain exception, or null when unhandled. Register via the existing DI/client or per-command `addExceptionTranslator`; declare the generic exception type.
 
-Keep unique constraints, optimistic checks, dissociation protection and transaction scope intact. An affected-row count of zero is not universally a thrown exception; this release has no acceptance flag. Verify the original failure plus a neighboring success/conflict branch, including stored state.
+Keep unique constraints, optimistic checks, dissociation protection and transaction scope intact. An affected-row count of zero is not universally a thrown exception; there is no acceptance flag. Verify the original failure plus a neighboring success/conflict branch, including stored state.
 
 Source: [SaveException](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-sql/src/main/java/org/babyfish/jimmer/sql/exception/SaveException.java), [QueryReason](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-sql/src/main/java/org/babyfish/jimmer/sql/ast/mutation/QueryReason.java).

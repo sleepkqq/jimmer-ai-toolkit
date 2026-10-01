@@ -1,13 +1,13 @@
 # Quick model-output canaries — 0.9.111
 
 These checks test **model-generated answers**, separately from the authored
-examples. Seven prompts and 28 assertions define the release set (five prompts
-were frozen before the first run; the two release-boundary cases and the
-prompt simplification were added on 2026-10-01, with the assertion revisions
-recorded in [cases.json](cases.json)). Prompts deliberately state only the call
-interface the automated checks compile against, not the API to use. Each run
-uses the existing closed-book toolkit runner, selected release skills, fresh
-sessions and denied tools.
+examples. Seven prompts and 28 assertions define the release set. Since the
+2026-10-02 revision the prompts ask for concrete usage and the skills describe
+the API to use, instead of testing release-boundary trivia;
+`trigger-version-boundary` became `cache-trigger-topology`. Prompts
+deliberately state only the call interface the automated checks compile
+against, not the API to use. Each run uses the existing closed-book toolkit
+runner, selected release skills, fresh sessions and denied tools.
 
 ## Run
 
@@ -84,6 +84,15 @@ through a wrapper that forces IPv4 and longer HTTP timeouts.
   `jimmer-kotlin`, and `jimmer-query` carries a complete `@TypedTuple` query
   example. Compiled Java/Kotlin answers and the DTO:
   [results/2026-10-01-flash-facades](results/2026-10-01-flash-facades).
+- Usage-first round (2026-10-02, `opencode-go/deepseek-v4.1-flash`, repeats=1):
+  **28/28 assertions, 7/7 cases** after the skills dropped deprecation and
+  cross-release bookkeeping and the prompts moved to usage tasks. The first pass
+  found one real usage gap — the model guessed
+  `org.babyfish.jimmer.sql.ast.Page` instead of `org.babyfish.jimmer.Page` —
+  fixed in `jimmer-query`; the targeted rerun of `java-create-and-query` passed
+  4/4. Grading was source inspection against the compiled examples; the compile
+  verifier was not rerun for this round (Gradle 8.12.1 / JDK 21 unavailable).
+  Evidence: [results/2026-10-02-usage](results/2026-10-02-usage).
 
 Grades are a **non-blind self-review against pinned source**, with executable
 evidence for the generated functions. This small canary set does not prove

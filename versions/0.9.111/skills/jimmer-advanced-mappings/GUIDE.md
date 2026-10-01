@@ -32,7 +32,7 @@ Kotlin uses the same annotations on `val authorLinks: List<BookAuthor>` and `val
 
 Java `@LogicalDeleted("true") boolean deleted();`, Kotlin `@LogicalDeleted("true") val deleted: Boolean` enable the built-in visibility filter and logical delete path. Timestamp/tombstone generators are available for multiple historical rows. `DeleteMode.PHYSICAL` is a deliberate physical-delete request.
 
-Align unique constraints with retained history. `(business_key, boolean_deleted)` permits only one deleted row per key; it does not support unlimited deleted duplicates. Test this release's generated upsert SQL against the actual constraint/dialect instead of promising newer partial-index optimizations. Inspect join-table logical-deletion options and both association directions when cache invalidation depends on them.
+Align unique constraints with retained history. `(business_key, boolean_deleted)` permits only one deleted row per key; it does not support unlimited deleted duplicates. Test the generated upsert SQL against the actual constraint/dialect. Inspect join-table logical-deletion options and both association directions when cache invalidation depends on them.
 
 ## Embedded values
 
@@ -68,8 +68,8 @@ Use `@EnumType(EnumType.Strategy.NAME)` (default) or `ORDINAL` deliberately. `@E
 
 Java `@Transient(ref = "bookCountResolver") long bookCount();` (Spring bean, useful across modules) or `@Transient(BookCountResolver.class)`, Kotlin `@Transient(ref = "bookCountResolver") val bookCount: Long` reference an integration-managed resolver.
 
-Implement Java `TransientResolver<ID, Value>` or Kotlin `KTransientResolver<ID, Value>` with `resolve(ids)` returning a map for the requested owner IDs. Query all owners in one batch, preserve expected empty/default values, and use the resolver's supported connection/current-filter mechanisms. Register dependency-triggered eviction if its result is cached. This version has no `resolve(ids, ctx)` or `ExperimentalTransientResolverContext` API.
+Implement Java `TransientResolver<ID, Value>` or Kotlin `KTransientResolver<ID, Value>` with `resolve(ids)` returning a map for the requested owner IDs. Query all owners in one batch, preserve expected empty/default values, and use the resolver's supported connection/current-filter mechanisms. Register dependency-triggered eviction if its result is cached. Implement the `resolve(ids)` form; do not use a context-aware `resolve(ids, ctx)` overload.
 
-For shared fields use a concrete-property `@MappedSuperclass`. Do not assume self-bounded generic recursive mapped superclasses supported by later versions; verify the processor before proposing one.
+For shared fields use a concrete-property `@MappedSuperclass`. Do not assume self-bounded generic recursive mapped superclasses; verify the processor before proposing one.
 
 Sources: [TransientResolver](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-sql/src/main/java/org/babyfish/jimmer/sql/TransientResolver.java), [KTransientResolver](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-sql-kotlin/src/main/kotlin/org/babyfish/jimmer/sql/kt/KTransientResolver.kt), [Jackson module](https://github.com/babyfish-ct/jimmer/blob/v0.9.111/project/jimmer-core/src/main/java/org/babyfish/jimmer/jackson/ImmutableModule.java).

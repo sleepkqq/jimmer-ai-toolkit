@@ -10,7 +10,7 @@ metadata:
 
 Read actual dialect/schema, migration history and entity annotations. Use `scripts/next-migration.sh /path/to/project` for discovery, then follow the project's established file naming/format and changelog registration. Scripts are relative to this skill.
 
-The official release has no `jimmer-ddl-compiler` module, `@MapsId`, `@DatabaseDefault` or entity inheritance/discriminator mapping. Do not add later processor coordinates or annotations to generate a migration.
+Migrations are authored from the actual schema and annotations: there is no DDL-compiler module. Do not add processor coordinates or unsupported mapping annotations (`@MapsId`, `@DatabaseDefault`, inheritance/discriminator mapping) to generate one.
 
 ## Mapping to constraints
 
@@ -49,7 +49,7 @@ create index book_store_id_idx on book(store_id);
 
 Align decimal precision, timestamps/timezone, enum representation, UUID scalar providers and defaults from real data. PostgreSQL UUID and JSONB mappings are not portable MySQL defaults. ORM `@Default` does not install a DB default for external writers.
 
-For soft delete, a boolean in a composite unique key supports only one deleted duplicate; use an explicitly designed history/tombstone strategy when more are required. Validate native-upsert behavior against this release's dialect implementation. Index both join-table directions when needed; avoid duplicate indexes already covered by suitable unique/composite indexes.
+For soft delete, a boolean in a composite unique key supports only one deleted duplicate; use an explicitly designed history/tombstone strategy when more are required. Validate native-upsert behavior against the dialect implementation. Index both join-table directions when needed; avoid duplicate indexes already covered by suitable unique/composite indexes.
 
 Compile via `scripts/compile.sh`, apply the migration to a disposable database, run schema validation and a representative save/dissociation/duplicate-key operation. Do not infer data migration, destructive renames or database cascades from an annotation alone.
 

@@ -1,6 +1,6 @@
 ---
 name: jimmer-config
-description: Verify official Spring and standalone Java/Kotlin configuration keys, defaults, processor alignment and trigger policy without later fork settings.
+description: Verify Spring and standalone Java/Kotlin configuration keys, defaults, processor alignment and trigger policy.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -8,7 +8,7 @@ metadata:
 
 # Configuration
 
-Check resolved runtime **and** processor coordinates before changing a key. Official artifacts use `org.babyfish.jimmer`, aligned at the release version (`<release-version>` in the snippets below). Spring properties use `jimmer.*`; standalone client builders do not consume Spring YAML. No official Quarkus module/config namespace ships in this release.
+Check resolved runtime **and** processor coordinates before changing a key. Official artifacts use `org.babyfish.jimmer`, aligned at the release version (`<release-version>` in the snippets below). Spring properties use `jimmer.*`; standalone client builders do not consume Spring YAML.
 
 Java Gradle dependencies (in a Java project):
 
@@ -39,6 +39,6 @@ jimmer:
   trigger-type: BINLOG_ONLY
 ```
 
-Logging is for a suitable environment; avoid leaking values into production logs. Schema validation checks migrated schema and does not apply migrations. `BINLOG_ONLY` requires actual event delivery when event-based cache consistency is expected; transaction modes are not deprecated here.
+Logging is for a suitable environment; avoid leaking values into production logs. Schema validation checks migrated schema and does not apply migrations. `BINLOG_ONLY` requires actual event delivery when event-based cache consistency is expected.
 
 Read [GUIDE.md](GUIDE.md) for source-verified keys. Verify by starting the actual framework context and inspecting effective client configuration, not merely YAML parsing.

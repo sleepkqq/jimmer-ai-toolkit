@@ -11,7 +11,7 @@ metadata:
 Read the entity and actual APT/KSP version. The same `.dto` syntax generates Java or Kotlin types; do not hand-write replacement DTO mappers.
 
 1. Choose output View, writable `input`, or `specification`. Public output fields and writable input fields are separate allow-lists.
-2. Bind with `export` or use `src/main/dto/<entity package>/<Entity>.dto`. A Java module whose entities come from a dependency may need `@EnableDtoGeneration` (available since 0.9.87) so APT runs on a DTO-only module. This version does not support `for Entity`, named `fragment`/`#include`, `association -> OtherDto`, `fold`, or polymorphic `#types`/`#exhaustive`.
+2. Bind with `export` or use `src/main/dto/<entity package>/<Entity>.dto`. A Java module whose entities come from a dependency may need `@EnableDtoGeneration` so APT runs on a DTO-only module. The grammar is `export` plus nested blocks: `for Entity`, named `fragment`/`#include`, `association -> OtherDto`, `fold` and polymorphic `#types`/`#exhaustive` are not part of it.
 3. Compile with `scripts/compile.sh /path/to/project` (relative to this skill). DTO-only changes must actually rerun APT/KSP; check generated output and force the processor task if stale.
 4. For PATCH verify JSON omission, null, value and empty collection through the application's real mapper and generated `toEntity()`.
 

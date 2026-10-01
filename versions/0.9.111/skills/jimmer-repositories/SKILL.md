@@ -8,7 +8,7 @@ metadata:
 
 # Repositories
 
-Inspect current data-access boundaries. Direct `JSqlClient`/`KSqlClient` is valid; no repository wrapper is mandatory. The official release has Spring repository integration, not unified Quarkus repositories.
+Inspect current data-access boundaries. Direct `JSqlClient`/`KSqlClient` is valid; no repository wrapper is mandatory. Repository integration here is Spring-based; for Quarkus see `jimmer-quarkus`.
 
 Take the first option expressing the **whole result**: existing built-in → supported derived method → typed DSL. An empty repository is enough until a caller needs more. Keep business decisions and multi-statement transactions in the existing service boundary.
 
@@ -53,7 +53,7 @@ return repository.sql.saveCommand(input) {
 
 Using the Kotlin repository's `sql` client makes the release's command API explicit; do not assume method parity with Java. For a conditional query use `sql()` in a Java default method or `sql` in Kotlin and follow `jimmer-query`.
 
-Fetchers may intentionally require several batched SQL statements; one repository invocation is not one-statement or snapshot-atomic evidence. For conflict branches, no `isAccepted` API exists; inspect `jimmer-save-modes` before promising an existing row from `INSERT_IF_ABSENT`.
+Fetchers may intentionally require several batched SQL statements; one repository invocation is not one-statement or snapshot-atomic evidence. For conflict branches, inspect `jimmer-save-modes` before promising an existing row from `INSERT_IF_ABSENT`.
 
 Verify generated types, repository startup, emitted SQL, return type and transaction lifetime.
 

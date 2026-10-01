@@ -1,6 +1,6 @@
 ---
 name: jimmer-kotlin
-description: Implement Jimmer Kotlin draft, query, fetcher and save DSL with KSP, null-aware predicates and version-correct Java equivalents.
+description: Implement Jimmer Kotlin draft, query, fetcher and save DSL with KSP, null-aware predicates and the matching Java equivalents.
 metadata:
   toolkit: jimmer-ai-toolkit
   kind: reference
@@ -8,11 +8,11 @@ metadata:
 
 # Kotlin
 
-Use official `jimmer-sql-kotlin` with its matching `jimmer-ksp`. Align Kotlin/KSP plugin versions separately. In Spring set `jimmer.language=kotlin`; the standalone `newKSqlClient` builder is already Kotlin-specific. No official Quarkus configuration is provided by this release.
+Use official `jimmer-sql-kotlin` with its matching `jimmer-ksp`. Align Kotlin/KSP plugin versions separately. In Spring set `jimmer.language=kotlin`; the standalone `newKSqlClient` builder is already Kotlin-specific. For Quarkus, see `jimmer-quarkus`.
 
 ## Draft creation
 
-Keep one Jimmer model declaration per Kotlin source file. This release's KSP rejects multiple `@Entity`, `@MappedSuperclass`, `@Embeddable` or `@Immutable` types in the same file.
+Keep one Jimmer model declaration per Kotlin source file. KSP rejects multiple `@Entity`, `@MappedSuperclass`, `@Embeddable` or `@Immutable` types in the same file.
 
 ```kotlin
 import example.Book
@@ -43,7 +43,6 @@ The `$`-style call `BookDraft.$.produce(draft -> { ... })` is identical. APT als
 - `newFetcher(Book::class).by { name(); store { name() } }` builds a Fetcher; `table.fetch(BookView::class)` selects a generated View.
 - Generated Kotlin DTOs are immutable by default; use constructor arguments such as `BookSpec(name = "guide")`, not Java-style setters or `apply { name = ... }` unless the project explicitly generates mutable DTOs.
 - `sqlClient.save(entity) { setMode(SaveMode.UPDATE_ONLY) }.modifiedEntity` returns the known partial saved object. To request a View use `saveCommand(entity) { ... }.execute(BookView::class).modifiedView`.
-- This tag has no `isAccepted`, save `setUpdateWhere`, `VersionMode`, mutation `returning` or query `stream()`. Follow `jimmer-save-modes` / `jimmer-dml` / `jimmer-query` for supported alternatives.
 - Kotlin nullability is `T?`; non-null properties may still be unloaded. Inspect with `org.babyfish.jimmer.kt.isLoaded(entity, Book::store)` before reading a partial field.
 
 ## Preprocessor vs interceptor
@@ -62,6 +61,6 @@ class BookNamePreProcessor : DraftPreProcessor<BookDraft> {
 
 Both languages implement the Java `org.babyfish.jimmer.sql.DraftPreProcessor` / `DraftInterceptor` contracts. Register through the actual client/framework integration. An interceptor needing original state can force preselection (`QueryReason.INTERCEPTOR`); declared dependencies control original fields. Batch hook work rather than running a query per item. Do not move original-state logic into a preprocessor just to remove a SELECT, and do not overwrite creation timestamps on every update.
 
-A standalone (non-Spring) Jackson 2 mapper registers `org.babyfish.jimmer.jackson.ImmutableModule`, e.g. `ObjectMapper().registerModule(ImmutableModule())`; the newer suffixed modules do not exist here.
+A standalone (non-Spring) Jackson 2 mapper registers `org.babyfish.jimmer.jackson.ImmutableModule`, e.g. `ObjectMapper().registerModule(ImmutableModule())`.
 
 Verify generated DTO/draft/fetcher imports with KSP, null/value/omitted Input behavior and representative SQL. Source: [Kotlin production DSL](https://github.com/babyfish-ct/jimmer/tree/v0.9.111/project/jimmer-sql-kotlin/src/main/kotlin/org/babyfish/jimmer/sql/kt), [KSP generators](https://github.com/babyfish-ct/jimmer/tree/v0.9.111/project/jimmer-ksp/src/main/kotlin/org/babyfish/jimmer/ksp/immutable/generator).

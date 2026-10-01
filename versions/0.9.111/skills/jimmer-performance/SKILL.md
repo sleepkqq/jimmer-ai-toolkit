@@ -38,13 +38,13 @@ val result = sqlClient.saveEntities(books) {
 
 Batch APIs avoid application loops of single saves, but driver/generated-key/shape differences can split statements. Graph writes are not guaranteed one round trip.
 
-For a successful save, use `modifiedEntity` when its partial shape is sufficient. Request a Fetcher/View via command execution if more fields are required; this version may fetch them after saving. Do not promise later save-returning optimizations, `isAccepted` or result-read flags. A strict insert-if-absent endpoint needing an unchanged existing row may legitimately need a key lookup with explicit concurrency policy.
+For a successful save, use `modifiedEntity` when its partial shape is sufficient. Request a Fetcher/View via command execution if more fields are required; the fetch happens after saving. A strict insert-if-absent endpoint needing an unchanged existing row may legitimately need a key lookup with explicit concurrency policy.
 
 `isModified` describes changed immutable-object identity. Kotlin also has `isRowAffected` (nonempty affected-count map), while Java `SimpleSaveResult` does not. Neither is root acceptance. Use Java `getAffectedRowCount(Book.class)` versus Kotlin `affectedRowCount(Book::class)` for a particular entity table; see `jimmer-save-modes` for the complete result contract.
 
-Inspect `QueryReason` for extra reads: interceptors needing original state, transaction triggers, optimistic checks, missing native key constraints and dialect limitations. `DraftPreProcessor` only replaces an interceptor when original-state logic is unnecessary. Transaction trigger modes are not deprecated in this release; do not disable them as a performance shortcut while leaving caches stale.
+Inspect `QueryReason` for extra reads: interceptors needing original state, transaction triggers, optimistic checks, missing native key constraints and dialect limitations. `DraftPreProcessor` only replaces an interceptor when original-state logic is unnecessary. Do not disable transaction triggers as a performance shortcut while leaving caches stale.
 
-Atomic arithmetic belongs in `createUpdate` expressions (`jimmer-dml`), not read-modify-write or unavailable save assignment APIs. Mutation `returning` and query-derived insert/upsert are unavailable. When subsequent logic needs updated values, an explicit read in the required transaction scope can be correct.
+Atomic arithmetic belongs in `createUpdate` expressions (`jimmer-dml`), not read-modify-write. When subsequent logic needs updated values, an explicit read in the required transaction scope can be correct.
 
 ## Verification
 

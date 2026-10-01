@@ -41,10 +41,11 @@ Paths below are relative to the upstream `project/` directory.
 | Configuration | Spring `jimmer.*` source-verified defaults | `jimmer-spring-boot-starter/.../cfg/JimmerProperties.java` |
 | Quarkus / DDL compiler | Neither module is shipped by the official tag | `project/settings.gradle.kts` and module tree |
 
-Unsupported topics retain their skill names to explain the boundary and available
-alternatives. The Quarkus skill requires checking the consumer's **separately
-versioned extension**, rather than suggesting fictional official coordinates or
-assuming compatibility with the newer unified fork.
+Topics keep stable names across releases; each release's skills describe the
+usage that fits it, with a compact note where an outcome needs a different API,
+instead of a changelog of other releases. The Quarkus skill requires checking
+the consumer's **separately versioned extension** rather than assuming official
+coordinates or a unified module.
 
 ## Java and Kotlin examples
 
@@ -77,6 +78,7 @@ entry point).
 | `gradle ... check`, JDK 21 / Gradle 8.12.1 | Java APT and Kotlin KSP compilation plus both H2 assertion programs passed |
 | `python3 tests/validate-skills.py` | Both releases, 34 skills, local links, 32 historical + 7 release canary definitions and 26 helper scripts validated |
 | 0.9.111 quick canaries, `deepseek-v4.1-flash` | 28/28 in the simplified-prompt round and again after the facade/version-agnostic cleanup; graded Java/Kotlin answers and `StorePatch` compiled and passed H2 (`evals/results/2026-10-01-flash*/verify.log`) |
+| Usage-first canaries, `deepseek-v4.1-flash` (2026-10-02) | 28/28 after the usage-first skill rewrite; one `Page`-import gap found and fixed in `jimmer-query`; graded by inspection (compile verifier not rerun) |
 | `bash tests/test-version-install.sh` | Both releases, all five tools, copy/symlink switching, repeat installs and old dangling-link migration passed |
 | `bash tests/test-codex-install.sh` | Default installation and stubbed MCP registration passed |
 | Retained `versions/0.12.2/examples/java` | Existing APT/H2 assertions passed after relocation |

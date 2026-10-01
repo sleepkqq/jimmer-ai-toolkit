@@ -48,7 +48,7 @@ Implement Java `CacheableFilter<TenantScopedProps>` / Kotlin `KCacheableFilter<T
 - Use multi-view/parameterized association/resolver caches, or keep affected properties uncached. Object caches remain single-view.
 - Inspect abandoned-cache callbacks; a configured single-view property cache can be ignored for a filtered target.
 
-All three trigger modes remain supported and **not deprecated** in this release. Choose invalidation from the real writer topology (`jimmer-caching`).
+Choose invalidation from the real writer topology (`jimmer-caching`).
 
 ## Mutation boundary and verification
 
