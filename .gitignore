@@ -8,3 +8,10 @@ __pycache__/
 
 # MCP build artifacts (built at install time)
 mcp/jimmer-docs-mcp/dist/
+
+# Dependency source checkouts (metadata is tracked)
+.slim/clonedeps/
+
+# JVM example build artifacts
+**/.gradle/
+**/build/

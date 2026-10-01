@@ -1,6 +1,9 @@
 # Skill refresh evidence
 
-Reviewed: 2026-09-20. Version/revision pins belong here and in evaluation fixtures, not in skill instructions. Resolve the consumer's installed dependencies before using an API.
+Reviewed: 2026-09-20. This historical refresh now lives under `versions/0.12.2/`.
+The subsequent release-specific layout intentionally puts version boundaries in
+skill instructions and pins provenance in each release's `sources.json`.
+For the 0.9.111 audit and paired examples see [its evidence](../versions/0.9.111/README.md).
 
 ## Sources inspected
 

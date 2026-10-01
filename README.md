@@ -4,7 +4,15 @@ Skills-native toolkit that helps AI coding agents work with Jimmer ORM without k
 
 ## What's Included
 
-### Skills (`skills/`)
+### Release-specific skills (`versions/<version>/skills/`)
+
+Choose the **official Jimmer release used by the application**. Each release has
+the same 17 topics, version-specific instructions and its own source manifest.
+
+| Release | Scope |
+|---|---|
+| [0.9.111](versions/0.9.111/README.md) | Official `v0.9.111`, paired Java/APT and Kotlin/KSP examples, explicit boundaries for unsupported later APIs |
+| [0.12.2](versions/0.12.2/README.md) | Existing refreshed set, based on official `v0.12.2`; separately identified unified Quarkus **fork** guidance retained |
 
 Task skills:
 - `jimmer-entity` — entity creation/change workflow with interface, association, key, base type, and repository rules
@@ -27,9 +35,28 @@ Reference skills:
 - `jimmer-config` — framework-specific keys, defaults, and build/runtime scope
 - `jimmer-performance` — measured SQL/QueryReason diagnosis, result fetching, batching, and pagination
 
-Skills contain no fixed library versions: resolve the consumer's runtime and processor APIs before applying examples. Detailed syntax lives in `GUIDE.md` or `references/` where useful; the entry point keeps decisions and common failure modes immediately visible.
+Resolve the consumer's runtime **and processor** versions before selecting a set.
+Detailed syntax lives in `GUIDE.md` or `references/`; each installed skill identifies
+its release in frontmatter. Topic descriptions above summarize the newer set;
+older releases explain supported alternatives where an API is absent.
 
-Current trigger policy: **`TRANSACTION_ONLY` and `BOTH` are deprecated**. New cache setups use `BINLOG_ONLY` with an actual CDC delivery/invalidation path; changing the setting alone does not provide consistency.
+Trigger policy is version-specific: `TRANSACTION_ONLY` and `BOTH` are **not
+deprecated in 0.9.111**, but are deprecated in 0.12.2. `BINLOG_ONLY` requires a
+real delivery/invalidation path when used for cache consistency.
+
+```text
+versions/
+  0.9.111/
+    sources.json          # official tag + exact commit
+    skills/               # complete, independently installable set
+    examples/             # Java/APT + Kotlin/KSP + H2 checks
+  0.12.2/
+    sources.json          # official source and separate fork provenance
+    skills/
+    examples/java/        # retained executable refresh fixture
+mcp/                      # shared, supports source lookup by release ref
+tests/                    # shared validation/install tests and historical evaluations
+```
 
 ### Skill Scripts
 
@@ -61,7 +88,10 @@ Skills install into the agent's **user config**, so every project can use them. 
 
 ```bash
 chmod +x install.sh
-./install.sh                    # skills only, OpenCode (default)
+./install.sh                    # 0.12.2 skills, OpenCode (default)
+./install.sh --list-versions
+./install.sh --version 0.9.111   # official 0.9.111 skills
+./install.sh --version 0.9.111 --tool codex
 ./install.sh --mcp              # skills + MCP docs server
 ./install.sh --tool claude      # install for Claude Code
 ./install.sh --tool claude --mcp
@@ -77,6 +107,8 @@ chmod +x install.sh
 ./install.sh [OPTIONS]
 
   --tool opencode|claude|qwen|gigacode|codex Target CLI tool (default: opencode)
+  --version VERSION                          Jimmer release (default: 0.12.2)
+  --list-versions                            List bundled release sets
   --symlink                                  Use symlinks instead of copies
   --mcp                                      Build and install the MCP docs server
 ```
@@ -88,6 +120,15 @@ registers it. Claude Code uses `claude mcp add --scope user`; Codex uses native
 ## Installed Layout
 
 Skills land in the selected tool's user-config skills directory:
+
+One release is active per tool/user directory. Installing another release
+replaces these same `jimmer-*` topics, so an agent does not discover conflicting
+versions under duplicate names. Other skills are preserved. For project-local
+agent setups, copy the chosen release's skill directories into that project's
+supported skills location. Do not install all release trees recursively.
+
+After updating from the old flat layout, rerun the installer to repair old
+`--symlink` targets, then start a fresh agent session to reload descriptions.
 
 | Tool       | Skills directory                |
 |------------|---------------------------------|
@@ -143,6 +184,7 @@ Skill examples use synthetic domains or public upstream examples. Replace them w
 ## Maintenance and checks
 
 - [Research and source ledger](docs/skill-refresh.md) — public source revisions, corrections, and authoring decisions.
+- [0.9.111 compatibility and evidence](versions/0.9.111/README.md) — supported APIs, source paths and executable Java/Kotlin checks.
 - [Skill canaries](tests/skill-evals/README.md) — reproducible baseline/updated comparisons through OpenCode using the configured model provider.
 - [Measured refresh results](tests/skill-evals/RESULTS.md) — assertion grades, retained answers, compiler feedback and evaluation limits.
 - [Revision-to-revision evaluation](tests/skill-evals/ROUND2.md) — independent masked grading, unseen transfer tasks, regressions and executable mutation checks.
@@ -152,4 +194,12 @@ Skill examples use synthetic domains or public upstream examples. Replace them w
 ```bash
 python3 tests/validate-skills.py
 bash tests/test-codex-install.sh
+bash tests/test-version-install.sh
+# JDK 21 and Gradle 8.12.1 (Kotlin 2.1.20 / matching KSP):
+gradle -p versions/0.9.111/examples --no-daemon --console=plain check
 ```
+
+The docs MCP is shared. For old releases use `jimmer_source_lookup` with
+`ref: "v0.9.111"` (or the manifest's commit), then read at the returned revision.
+Documentation-repository refs are independent: never assume current docs or a
+matching-looking docs tag establish compatibility with that Jimmer release.

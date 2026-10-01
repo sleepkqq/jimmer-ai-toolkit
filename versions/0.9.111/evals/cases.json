@@ -1,0 +1,82 @@
+{
+  "description": "Quick closed-book release canaries for official Jimmer 0.9.111. Grade source/API behavior, not wording. Prompts stay short and realistic on purpose: an over-specified prompt lets the model mirror the question instead of the release, which was observed in the first round and is why this set was simplified on 2026-10-01. Prompts state only the call interface the automated checks need (static methods / object with given signatures). Assertion revisions from that simplification: typed-tuple-aggregate accepts a constructor- or setter-based tuple class, and kotlin-patch-presence grades the Jackson module rather than Kotlin DTO construction style, which its prompt no longer requests.",
+  "cases": [
+    {
+      "id": "java-create-and-query",
+      "skills": ["jimmer-entity", "jimmer-save-modes", "jimmer-query"],
+      "prompt": "Jimmer 0.9.111, Java 21. example.Book has generated identity long id, unique @Key String name, BigDecimal price, int @Version version, inherited String tenantId and a nullable BookStore store; generated example.dto.BookView exists. Write a compilable example.CanaryJava: static BookView create(JSqlClient sql, String name, BigDecimal price, String tenantId) for a strict create, and static Page<BookView> search(JSqlClient sql, String name, int page, int size) with an optional name filter and stable order. Can a teammate call result.isAccepted() here? Answer briefly after the code.",
+      "assertions": [
+        "Java class compiles against official 0.9.111 APT-generated models and DTOs, including its declared Page return type.",
+        "Create uses INSERT_ONLY and returns the required BookView with generated ID, without silently upserting or swallowing a duplicate constraint failure.",
+        "Search uses the generated Book table, optional name predicate, deterministic name/id order and fetchPage.",
+        "Explicitly states isAccepted is unavailable in 0.9.111 and does not use it or substitute isModified as an acceptance flag."
+      ]
+    },
+    {
+      "id": "kotlin-conditional-and-query",
+      "skills": ["jimmer-kotlin", "jimmer-dml", "jimmer-query"],
+      "prompt": "Jimmer 0.9.111, Kotlin 2.1.20. example.Book has Long id, BigDecimal price, Int @Version version; example.dto.BookView exists. Write example.CanaryKotlin as an object with fun increasePrice(sql: KSqlClient, id: Long, expectedVersion: Int, delta: BigDecimal): Boolean that bumps price and version atomically only when id and version match (stale or missing rows return false), and fun search(sql: KSqlClient, name: String?, page: Int, size: Int): Page<BookView> with an optional name filter and stable order. Explain the API choice briefly after the code.",
+      "assertions": [
+        "Kotlin file compiles against the exact 0.9.111 KSP-generated model and DTO APIs.",
+        "Conditional update computes price and version in SQL, constrains both ID and expected version, never inserts and returns false for zero changed rows.",
+        "Uses supported createUpdate rather than save assignment expressions, setUpdateWhere, VersionMode, isAccepted or mutation returning.",
+        "Search uses native KSqlClient DSL, a null-aware predicate, stable name/id order and a Jimmer Page of the requested View."
+      ]
+    },
+    {
+      "id": "kotlin-patch-presence",
+      "skills": ["jimmer-dto", "jimmer-kotlin", "jimmer-save-modes"],
+      "prompt": "Jimmer 0.9.111 with Kotlin/KSP. BookStore (`example.BookStore`) has Long id, non-null String name, non-null List<Book> books, and Book.store is the nullable owning side. Give one StorePatch DTO where id is required, name is an optional change, omitted books keep membership and books: [] clears it; show the Kotlin save call and how to clear the links without deleting books. Also name the Jackson 2 module for a standalone mapper.",
+      "assertions": [
+        "Uses correctly bound dynamic input StorePatch with id, name? and books? containing id; no unsupported fragments, reusable-DTO arrows or newer grammar.",
+        "Distinguishes omission from loaded empty collection and chooses explicit REPLACE with UPDATE_ONLY through supported Kotlin save DSL.",
+        "Places SET_NULL dissociation on nullable owning Book.store, not inverse BookStore.books, without deleting target books.",
+        "Names org.babyfish.jimmer.jackson.ImmutableModule (unsuffixed) for standalone Jackson 2 and does not substitute newer ImmutableModuleV2/V3 packages."
+      ]
+    },
+    {
+      "id": "save-result-contract",
+      "skills": ["jimmer-save-modes", "jimmer-performance"],
+      "prompt": "We are on official Jimmer 0.9.111. What save-result APIs exist for Java SimpleSaveResult and Kotlin KSimpleSaveResult: isAccepted, isModified, isRowAffected? We need create-if-absent by unique SKU, never update a conflicting row, and return the existing row's ID on conflict. Is execute(ItemView.class).getModifiedView() enough? Give the smallest safe approach and the concurrency caveat.",
+      "assertions": [
+        "Says isAccepted/getIsAccepted does not exist on this release's save result APIs.",
+        "Identifies inherited isModified as changed immutable-object identity, not accepted/persisted success; identifies Kotlin isRowAffected as nonempty affectedRowCountMap, not a root acceptance flag or a Java SimpleSaveResult method.",
+        "Retains strict INSERT_IF_ABSENT no-update semantics and does not blindly read a required-ID View from a potentially partial conflicting result.",
+        "Allows explicit unique-key lookup with transaction/isolation or retry reasoning; does not claim the insert-plus-read is automatically one atomic statement."
+      ]
+    },
+    {
+      "id": "trigger-version-boundary",
+      "skills": ["jimmer-caching", "jimmer-config"],
+      "prompt": "Our official Jimmer version is 0.9.111. Are TRANSACTION_ONLY and BOTH deprecated here, and what is the Spring default trigger mode? With two application instances and a direct JDBC importer, which writes do transaction triggers observe and what must exist before BINLOG_ONLY can keep caches consistent? A failed cache deletion occurs while handling CDC: when can we acknowledge?",
+      "assertions": [
+        "Explicitly says transaction trigger modes are not deprecated in 0.9.111, rather than applying the 0.12.2 policy.",
+        "Correctly gives Spring default BINLOG_ONLY without claiming it installs CDC.",
+        "Distinguishes Jimmer-managed mutations from direct JDBC/external writers and requires real committed-change delivery for external invalidation.",
+        "Acknowledges only after required invalidation succeeds; preserves retry/redelivery and multi-instance consistency concerns."
+      ]
+    },
+    {
+      "id": "kotlin-ksp-construction",
+      "skills": ["jimmer-kotlin", "jimmer-entity"],
+      "prompt": "We are on Jimmer 0.9.111 with Kotlin and KSP. A colleague put two @Entity interfaces in one .kt file and the build failed: why, and how should Kotlin models be laid out? Also show the ways we can create an example.Book draft in this release, and name the Jackson 2 module for standalone mappers.",
+      "assertions": [
+        "States that this release's KSP rejects several immutable/model declarations in one file with a generator error, and the fix is one model type per Kotlin source file.",
+        "Shows new(Book::class).by { ... } with org.babyfish.jimmer.kt.new plus the generated by import from the model package.",
+        "Shows the generated Book { ... } factory from the model package as also supported in 0.9.111, not as a later-only API, and does not forbid it.",
+        "Names org.babyfish.jimmer.jackson.ImmutableModule (unsuffixed) for standalone Jackson 2."
+      ]
+    },
+    {
+      "id": "typed-tuple-aggregate",
+      "skills": ["jimmer-query", "jimmer-dml"],
+      "prompt": "Jimmer 0.9.111, Java 21. We need grouped aggregate rows with a store id, a book count and a minimum price straight from a query, without hand-written mapping code or Lombok. Does this release offer a typed tuple API? Show the tuple class and the query. Does query.stream() exist here?",
+      "assertions": [
+        "Identifies @TypedTuple (org.babyfish.jimmer.sql) with TYPE target and says APT/KSP generate a <SimpleName>Mapper fluent builder whose methods map the tuple components.",
+        "Declares the tuple class with matching component properties/getters (constructor or setter based); no hand-written mapper class.",
+        "Query uses the generated StoreAggregateMapper.storeId(...).bookCount(...).minPrice(...) builder inside select(...) with groupBy on the generated table.",
+        "States that a JDBC query stream() does not exist in 0.9.111 and does not use or promise it."
+      ]
+    }
+  ]
+}

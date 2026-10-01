@@ -3,6 +3,7 @@ set -euo pipefail
 
 TOOLKIT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOL="opencode"
+JIMMER_VERSION="0.12.2"
 USE_SYMLINK=false
 INSTALL_MCP=false
 
@@ -31,6 +32,8 @@ print_usage() {
     echo ""
     echo "Options:"
     echo -e "  ${CYAN}--tool${NC} opencode|claude|qwen|gigacode|codex Target CLI tool (default: opencode)"
+    echo -e "  ${CYAN}--version${NC} VERSION                          Jimmer release (default: 0.12.2)"
+    echo -e "  ${CYAN}--list-versions${NC}                            List bundled Jimmer releases"
     echo -e "  ${CYAN}--symlink${NC}                                Use symlinks instead of copies"
     echo -e "  ${CYAN}--mcp${NC}                                    Install MCP server config"
     echo ""
@@ -45,8 +48,20 @@ print_usage() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --tool)
+            [[ $# -ge 2 ]] || { log_error "--tool requires a value"; exit 1; }
             TOOL="$2"
             shift 2
+            ;;
+        --version)
+            [[ $# -ge 2 ]] || { log_error "--version requires a value"; exit 1; }
+            JIMMER_VERSION="$2"
+            shift 2
+            ;;
+        --list-versions)
+            for dir in "$TOOLKIT_DIR"/versions/*/skills; do
+                basename "$(dirname "$dir")"
+            done
+            exit 0
             ;;
         --symlink)
             USE_SYMLINK=true
@@ -70,6 +85,12 @@ done
 
 if [[ "$TOOL" != "opencode" && "$TOOL" != "claude" && "$TOOL" != "qwen" && "$TOOL" != "gigacode" && "$TOOL" != "codex" ]]; then
     echo -e "${RED}Error:${NC} --tool must be 'opencode', 'claude', 'qwen', 'gigacode', or 'codex'"
+    exit 1
+fi
+
+SKILLS_SOURCE="$TOOLKIT_DIR/versions/$JIMMER_VERSION/skills"
+if [[ ! "$JIMMER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ ! -d "$SKILLS_SOURCE" ]]; then
+    log_error "Unsupported Jimmer version: $JIMMER_VERSION. Use --list-versions."
     exit 1
 fi
 
@@ -105,13 +126,13 @@ install_path() {
     local dst="$2"
     local label="$3"
 
-    if [ -e "$dst" ]; then
-        if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
+    if [ -e "$dst" ] || [ -L "$dst" ]; then
+        if [ "$USE_SYMLINK" = true ] && [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
             log_skip "already linked: $label"
             SKIPPED=$((SKIPPED + 1))
             return
         fi
-        if [ -d "$src" ] && [ -d "$dst" ] && diff -qr "$src" "$dst" >/dev/null 2>&1; then
+        if [ ! -L "$dst" ] && [ "$USE_SYMLINK" = false ] && [ -d "$src" ] && [ -d "$dst" ] && diff -qr "$src" "$dst" >/dev/null 2>&1; then
             log_skip "identical: $label"
             SKIPPED=$((SKIPPED + 1))
             return
@@ -140,9 +161,11 @@ install_path() {
 }
 
 log_header "Skills"
+log_info "Jimmer $JIMMER_VERSION"
 SKILL_COUNT=0
-for dir in "$TOOLKIT_DIR"/skills/*; do
+for dir in "$SKILLS_SOURCE"/*; do
     [ -d "$dir" ] || continue
+    [ -f "$dir/SKILL.md" ] || continue
     name=$(basename "$dir")
     install_path "$dir" "$SKILLS_DIR/$name" "$name"
     SKILL_COUNT=$((SKILL_COUNT + 1))

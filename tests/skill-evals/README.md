@@ -2,6 +2,11 @@
 
 These are closed-book **output-quality** checks, not SQL throughput measurements. The tasks use synthetic domains and public APIs. `cases.json` freezes prompts and behavior rubrics; exact phrasing is not graded.
 
+These retained suites target the **0.12.2-era set and its separately versioned
+Quarkus fork**. Their newer-API assertions are not acceptance criteria for
+0.9.111. Its Java/Kotlin compiler and runtime checks live in
+[`versions/0.9.111/examples`](../../versions/0.9.111/examples/README.md).
+
 Recorded refresh: [results, limitations and answer evidence](RESULTS.md).
 
 Latest comparison: [fresh paired regression and transfer evaluation](ROUND2.md).
@@ -12,7 +17,7 @@ Follow-up methodology: [transfer-focused refinement](../../docs/skill-refinement
 
 ## Paired protocol
 
-1. Before edits, copy the current `skills/` directory to a baseline directory, including any existing uncommitted changes.
+1. Before edits, copy the selected `versions/<release>/skills/` directory to a baseline directory, including any existing uncommitted changes.
 2. Run each case in fresh OpenCode sessions using the same model/variant for baseline and updated skills. The runner supplies the named skill's Markdown and references, with tools denied and one model step.
 3. Grade each assertion against the retained answer. A PASS needs evidence for the whole assertion; partial or guessed APIs fail. Report failed runs separately from answer failures.
 4. Keep latency, context bytes and prompt hashes. The CLI JSON stream used here does not expose token usage, so context bytes are **not** reported as tokens.
@@ -25,7 +30,7 @@ python3 tests/skill-evals/run.py \
   --model 'openai/gpt-5.6-luna#low' --repeats 2
 
 python3 tests/skill-evals/run.py \
-  --skills skills \
+  --skills versions/0.12.2/skills \
   --output /tmp/opencode/jimmer-updated-run \
   --model 'openai/gpt-5.6-luna#low' --repeats 2
 ```
@@ -47,10 +52,10 @@ Source snapshots and authoring research: [evidence ledger](../../docs/skill-refr
 
 ```bash
 python3 -B tests/skill-evals/test_reporting.py
-gradle -p tests/skill-evals/compile-smoke --no-daemon --console=plain run
+gradle -p versions/0.12.2/examples/java --no-daemon --console=plain run
 ```
 
-Use an installed compatible Gradle or an existing wrapper; the fixture adds no wrapper binary. It needs a JDK able to compile with `--release 21` and Maven Central access. Dependency pins are evaluation inputs and can be changed with `-PjimmerVersion=...` for the ORM. They are intentionally outside skills.
+Use an installed compatible Gradle or an existing wrapper; the fixture adds no wrapper binary. It needs a JDK able to compile with `--release 21` and Maven Central access. Dependency pins are evaluation inputs and can be changed with `-PjimmerVersion=...` for explicit compatibility experiments; do not use this newer-API fixture as the 0.9.111 test.
 
 The smoke application runs APT and DTO generation, then verifies JSON omission/null/empty-list loaded state, owning-side dissociation metadata and polymorphic DTO conversion. It executes insert-select, conditional query-derived upsert and external-version save on an ephemeral H2 database using both `H2Dialect` and the materialized `DefaultDialect` fallback. Assertions cover insert/update/rejection, no-update conflicts, returning membership, final database state, and omission versus empty-collection saves under MERGE/REPLACE. This does not certify production-dialect concurrency or native-image behavior.
 
