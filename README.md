@@ -1,5 +1,7 @@
 # Jimmer AI Toolkit
 
+> **Archived.** Moved with full history to [`sleepkqq/jimmer` → `ai-toolkit/`](https://github.com/sleepkqq/jimmer/tree/main/ai-toolkit). Install from there: `ai-toolkit/install.sh`.
+
 Skills-native toolkit that helps AI coding agents work with Jimmer ORM without keeping large context files always loaded.
 
 ## What's Included
